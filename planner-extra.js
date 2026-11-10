@@ -558,3 +558,133 @@ ACT['roster-share'] = async () => {
   toast(await copyText(text) ? 'Rooster gekopieerd — plak het in je chat 📋' : 'Delen lukte niet.');
 };
 CHANGE['share-exams'] = el => { cfg().shareExams = el.checked; touchSettings(); Sync.push(); toast(el.checked ? 'Je vrienden kunnen je examenrooster nu zien 👥' : 'Je examenrooster is niet meer gedeeld'); };
+
+/* =========================================================
+   Study mode: work through today's tasks one at a time.
+   One tap per page, live time and pace, break reminders,
+   and a clear STOP when the block (or the day) is done.
+   ========================================================= */
+const STUDY_TYPES = ['study', 'prep', 'review', 'final'];
+const Study = { key: '', running: false, t0: 0, acc: 0, mark: 0, brkAt: 0, brk: null, done: false, after: '' };
+const studyQueue = () => sortItems(planDay(todayKey()).items.filter(i => STUDY_TYPES.includes(i.type) && !itemDone(i)));
+const studyMs = () => Study.acc + (Study.running ? Date.now() - Study.t0 : 0);
+function studyRun(on) {
+  if (on === Study.running) return;
+  if (on) Study.t0 = Date.now(); else Study.acc += Date.now() - Study.t0;
+  Study.running = on;
+}
+function startStudyMode(key) {
+  const it = (key && findItem(key)) || studyQueue()[0];
+  if (!it || itemDone(it)) { toast('Alles voor vandaag is al gedaan!'); return; }
+  Object.assign(Study, { key: it.key, running: false, acc: 0, mark: 0, brkAt: 0, brk: null, done: false, after: '' });
+  studyRun(true);
+  let d = document.getElementById('study'); if (!d) { d = document.createElement('div'); d.id = 'study'; document.body.appendChild(d); }
+  document.body.classList.add('sheet-open');
+  try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) { /* ignore */ }
+  try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(w => { wakeLock = w; }).catch(() => {}); } catch (e) { /* ignore */ }
+  drawStudy();
+}
+function closeStudy() {
+  studyRun(false);
+  const d = document.getElementById('study'); if (d) d.remove();
+  document.body.classList.remove('sheet-open');
+  try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) { /* ignore */ }
+  render();
+  if (Study.after && getChapter(Study.after)) openSheet('summary-pages', { id: Study.after, fresh: true });
+  Study.key = ''; Study.after = '';
+}
+function studyPace(it) {
+  const ls = logsFor(it.key).filter(l => l.sm && l.day === todayKey() && l.units > 0);
+  const u = sum(ls, l => l.units), m = sum(ls, l => l.min);
+  return u >= 1 && m > 0 ? m / u : (it.units ? it.min / it.units : 0);
+}
+function drawStudy() {
+  const d = document.getElementById('study'); if (!d) return;
+  const it = findItem(Study.key), T = todayKey();
+  if (!it) { closeStudy(); return; }
+  const c = getCourse(it.course), ch = getChapter(it.chapter), paged = it.type === 'study' || it.type === 'prep';
+  const all = planDay(T).items.filter(i => STUDY_TYPES.includes(i.type)), nDone = all.filter(itemDone).length;
+  const top = `<div class="s-top"><button class="icon-btn" data-act="study-close" aria-label="Sluiten">✕</button><div class="grow"><b>${c ? emo(c) + ' ' + esc(c.name) : 'Studeren'}</b><small>${ch ? esc(ch.title) : esc(itemText(it).title.replace(/<[^>]+>/g, ''))}</small></div><span class="tag acc">${nDone}/${all.length} vandaag</span></div>`;
+  let main;
+  if (Study.brk) {
+    const left = Study.brk.end - Date.now();
+    main = `<div class="s-main"><span class="s-kind">Pauze</span><div class="s-stop">${left > 0 ? 'Pauze!' : 'Verder?'}</div><p class="s-sub">${left > 0 ? `Je hebt ${fmtMin(cfg().pomo.focus)} gestudeerd. Sta even op, drink iets.` : 'Je pauze is voorbij. Klaar om verder te gaan?'}</p>
+      <div class="s-page" data-sbreak>${Timer.fmt(Math.max(0, left))}</div></div>
+      <div class="s-row"><button class="btn primary" data-act="study-resume">${icon('play')} Verder studeren</button><button class="btn" data-act="study-close">Stop voor nu</button></div>`;
+  } else if (Study.done) {
+    const next = studyQueue()[0], nt = next ? itemText(next) : null, nc = next ? getCourse(next.course) : null;
+    main = `<div class="s-main"><div class="s-stop">STOP!</div><h2>${next ? 'Dit stuk is klaar' : 'Je bent klaar voor vandaag'}</h2>
+      <p class="s-sub">${next ? `Goed gedaan. Volgende: <b>${nc ? esc(nc.name) + ' · ' : ''}${nt.title}</b> (±${fmtMin(next.min)})` : 'Alles wat vandaag gepland stond is gedaan. Leg je boeken weg, je hebt het verdiend.'}</p>
+      <div class="s-facts"><div><b>${Timer.fmt(studyMs())}</b><small>gestudeerd</small></div><div><b>${nDone}/${all.length}</b><small>taken klaar</small></div><div><b>${Streak.current()}</b><small>dagen op rij</small></div></div></div>
+      <div class="s-row">${next ? `<button class="btn primary" data-act="study-next">${icon('arrowr')} Volgende taak</button>` : ''}<button class="btn${next ? '' : ' primary'}" data-act="study-close">${next ? 'Stop voor nu' : 'Sluiten'}</button></div>`;
+  } else if (paged) {
+    const doneU = Math.min(it.units, Math.round(itemFrac(it) * it.units)), page = it.from + doneU, pace = studyPace(it), unit = it.unit === 'dia' ? 'Dia' : 'Pagina';
+    main = `<div class="s-main"><span class="s-kind">${it.type === 'prep' ? 'Samenvatting maken' : 'Studeren'}</span>
+      <div class="s-page">${unit} ${page}</div><p class="s-sub">${it.type === 'prep' ? 'cursus ' : ''}${rangeText(it.unit, it.from, it.to)} staat vandaag gepland</p>
+      <div class="s-bar" role="progressbar" aria-valuenow="${doneU}" aria-valuemin="0" aria-valuemax="${it.units}"><span style="width:${doneU / it.units * 100}%"></span></div>
+      <p class="s-count">${doneU} van ${it.units} ${unitWord(it.unit, it.units)} gedaan</p>
+      <div class="s-facts"><div><b data-stime>${Timer.fmt(studyMs())}</b><small>bezig</small></div><div><b>${pace ? (Math.round(pace * 10) / 10).toString().replace('.', ',') : '–'}</b><small>min per ${it.unit === 'dia' ? 'dia' : 'pagina'}</small></div><div><b>±${fmtMin((it.units - doneU) * pace)}</b><small>nog te gaan</small></div></div></div>
+      <button class="s-big" data-act="study-page">${icon('check')} ${unit} ${page} klaar</button>
+      <div class="s-row"><button class="btn" data-act="study-pause">${Study.running ? icon('pause') + ' Pauze' : icon('play') + ' Verder'}</button><button class="btn" data-act="study-undo" ${doneU ? '' : 'disabled'}>${icon('undo')} Foutje</button><button class="btn" data-act="study-all">Alles klaar</button></div>`;
+  } else {
+    main = `<div class="s-main"><span class="s-kind">${KIND[it.type].label}</span><h2>${itemText(it).title}</h2><p class="s-sub">${itemText(it).meta}</p>
+      <div class="s-page" data-sleft>${Timer.fmt(Math.max(0, it.min * 60000 - (studyMs() - Study.mark)))}</div><p class="s-sub">Herhaal tot de tijd om is, of tot je alles weer kent.</p>
+      ${ch && (ch.hard || []).some(h => !h.ok) ? `<div class="alert warn" style="text-align:left"><span class="ai">${icon('warn')}</span><div class="grow"><p><b>Moeilijke stukken:</b> ${ch.hard.filter(h => !h.ok).map(h => esc(h.text)).join(' · ')}</p></div></div>` : ''}</div>
+      <button class="s-big" data-act="study-timed">${icon('check')} Herhaald</button>
+      <div class="s-row"><button class="btn" data-act="study-pause">${Study.running ? icon('pause') + ' Pauze' : icon('play') + ' Verder'}</button></div>`;
+  }
+  d.className = Study.running || Study.brk || Study.done ? '' : 'paused';
+  d.style.setProperty('--cc', c ? c.color : 'var(--accent)');
+  d.innerHTML = `<div class="in">${top}${main}</div>`;
+}
+function studyBlockDone() { Study.done = true; studyRun(false); beep('done'); confetti([], studyQueue().length ? 50 : 140); }
+Object.assign(ACT, {
+  'study-go'(el) { const key = el.dataset.key || (sheet && sheet.key) || ''; closeSheetIfOpen(); startStudyMode(key); },
+  'study-close'() { closeStudy(); },
+  'study-pause'() { studyRun(!Study.running); drawStudy(); },
+  'study-resume'() { Study.brk = null; Study.brkAt = studyMs(); studyRun(true); drawStudy(); },
+  'study-next'() { const n = studyQueue()[0]; if (!n) { closeStudy(); return; } Object.assign(Study, { key: n.key, done: false, mark: studyMs() }); studyRun(true); drawStudy(); },
+  'study-page'() {
+    const it = findItem(Study.key), ch = it && getChapter(it.chapter), T = todayKey(); if (!ch) return;
+    if (!Study.running) studyRun(true);
+    const now = studyMs(), min = Math.round(clamp((now - Study.mark) / 60000, 0, 30) * 10) / 10; Study.mark = now;
+    addLog({ type: it.type, key: it.key, course: it.course, chapter: ch.id, units: 1, unit: it.unit, min, est: false, sm: true });
+    const res = applyProgress(ch, it.type, 1, T); commit({ day: T });
+    if (res.finishedSummary) Study.after = ch.id;
+    if (cfg().vibrate && navigator.vibrate) { try { navigator.vibrate(20); } catch (e) { /* ignore */ } }
+    if (itemDone(it)) studyBlockDone();
+    drawStudy();
+  },
+  'study-undo'() {
+    const it = findItem(Study.key), ch = it && getChapter(it.chapter), T = todayKey(); if (!ch) return;
+    const last = logsFor(it.key).filter(l => l.sm && l.day === T && l.units > 0).sort((a, b) => b.at - a.at)[0]; if (!last) return;
+    drop('logs', last.id); applyProgress(ch, it.type, -last.units, T); commit({ day: T }); Study.done = false; drawStudy();
+  },
+  'study-all'() {
+    const it = findItem(Study.key), ch = it && getChapter(it.chapter), T = todayKey(); if (!ch) return;
+    const left = it.units - Math.round(itemFrac(it) * it.units); if (left <= 0) return;
+    const min = Math.round(clamp((studyMs() - Study.mark) / 60000, 0, 240) * 10) / 10; Study.mark = studyMs();
+    addLog({ type: it.type, key: it.key, course: it.course, chapter: ch.id, units: left, unit: it.unit, min, est: false, sm: true });
+    const res = applyProgress(ch, it.type, left, T); commit({ day: T }); if (res.finishedSummary) Study.after = ch.id;
+    studyBlockDone(); drawStudy();
+  },
+  'study-timed'() {
+    const it = findItem(Study.key); if (!it) return;
+    const real = Math.round((studyMs() - Study.mark) / 6000) / 10; Study.mark = studyMs();
+    if (!itemDone(it)) toggleItem(it);
+    const l = logsFor(it.key).filter(x => x.day === todayKey()).sort((a, b) => b.at - a.at)[0];
+    if (l && real >= 1) { l.min = real; l.est = false; put('logs', l); commit({ day: todayKey() }); }
+    studyBlockDone(); drawStudy();
+  }
+});
+setInterval(() => {
+  if (!document.getElementById('study')) return;
+  const t = document.querySelector('[data-stime]'); if (t) t.textContent = Timer.fmt(studyMs());
+  const it = findItem(Study.key), l = document.querySelector('[data-sleft]'); if (l && it) l.textContent = Timer.fmt(Math.max(0, it.min * 60000 - (studyMs() - Study.mark)));
+  if (Study.brk) {
+    const left = Study.brk.end - Date.now(), b = document.querySelector('[data-sbreak]'); if (b) b.textContent = Timer.fmt(Math.max(0, left));
+    if (left <= 0 && !Study.brk.over) { Study.brk.over = true; beep('break'); drawStudy(); }
+  } else if (Study.running && !Study.done && studyMs() - Study.brkAt >= cfg().pomo.focus * 60000) {
+    studyRun(false); Study.brk = { end: Date.now() + cfg().pomo.short * 60000 }; beep('done'); drawStudy();
+  }
+}, 1000);

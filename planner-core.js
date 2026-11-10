@@ -262,7 +262,7 @@ function measured(cid) {
       if (!alive(l) || l.course !== cid || !l.key) continue;
       const o = by[l.key] || (by[l.key] = { m: 0, u: 0 });
       if (l.type === 'timer') o.m += l.min || 0;
-      else if (l.type === 'study' && l.unit !== 'dia') o.u += l.units || 0;
+      else if (l.type === 'study' && l.unit !== 'dia') { o.u += l.units || 0; if (l.est === false) o.m += l.min || 0; }
     }
     let m = 0, u = 0, n = 0;
     for (const o of Object.values(by)) if (o.m >= 5 && o.u > 0) { m += o.m; u += o.u; n++; }

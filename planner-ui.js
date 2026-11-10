@@ -133,6 +133,7 @@ function renderToday() {
     <section class="section">
       <div class="section-head"><h2>Vandaag te doen</h2>
         <div class="seg" role="group" aria-label="Weergave">${[['list', '☰', 'Lijst'], ['cards', '▦', 'Kaartjes'], ['timeline', '🕘', 'Tijdlijn']].map(([k, i, l]) => `<button class="${L === k ? 'on' : ''}" data-act="layout" data-v="${k}" aria-label="${l}" title="${l}">${i}</button>`).join('')}</div></div>
+      ${items.some(i => STUDY_TYPES.includes(i.type) && !itemDone(i)) ? `<button class="btn primary block study-start" data-act="study-go">${icon('play')} Begin met studeren</button>` : ''}
       ${tasksHtml(items)}
       <div class="add-row"><button class="btn" data-act="task-new">+ Eigen taak</button><button class="btn" data-act="tab" data-tab="timer">⏱ Timer starten</button></div>
     </section>
@@ -229,7 +230,7 @@ function itemHtml(it, opts = {}) {
   const decks = it.type === 'cards' && c ? Flash.courseDecks(c) : [];
   const action = it.type === 'cards' && decks.length === 1 ? `<a class="btn xs primary" href="${Flash.link(decks[0].id)}">Oefen</a>`
     : it.type === 'cards' && decks.length ? `<button class="btn xs primary" data-act="item-menu" data-key="${esc(it.key)}">Oefen</button>`
-    : (!done && it.type !== 'task' ? `<button class="icon-btn sm" data-act="item-timer" data-key="${esc(it.key)}" aria-label="Start timer" title="Start timer">⏱</button>` : '');
+    : (!done && it.type !== 'task' ? `<button class="icon-btn sm" data-act="study-go" data-key="${esc(it.key)}" aria-label="Start met studeren" title="Start met studeren">${icon('play')}</button>` : '');
   return `<div class="item${done ? ' done' : ''}" style="${cc(c)}">
       ${opts.time ? `<span class="when">${opts.time}</span>` : ''}
       <button class="check${!done && frac > 0 ? ' part' : ''}" style="--p:${Math.round(frac * 100)}%" data-act="tick" data-key="${esc(it.key)}" aria-pressed="${done}" aria-label="${done ? 'Gedaan — tik om terug te zetten' : 'Afvinken'}">✓</button>
@@ -673,6 +674,7 @@ SHEETS.item = () => {
     h += `<form class="card flat form" data-form="item-partial"><label class="fld"><span>Gedeeltelijk gedaan? Hoeveel ${unitWord(it.unit, 2)} van de ${it.units}?</span>
       <div class="row"><input class="field grow" type="number" name="n" min="0" max="${it.units}" value="${Math.min(it.units, itemUnitsDone(it))}" inputmode="numeric" style="max-width:140px"><button class="btn primary sm">Opslaan</button></div></label></form>`;
   }
+  if (isToday && !done && STUDY_TYPES.includes(it.type)) h += `<button data-act="study-go"><i>${icon('play')}</i><span>Start met studeren<small>Studeerscherm: tik per pagina, met tijd, pauzes en een stopsignaal</small></span></button>`;
   if (isToday && it.type !== 'task' && it.type !== 'cards') h += `<button data-act="item-timer"><i>⏱</i><span>Start de timer hiervoor<small>De tijd telt mee in je statistieken${ch ? ' en je tempo' : ''}</small></span></button>`;
   if (c && (it.type === 'cards' || it.type === 'review')) for (const d of Flash.courseDecks(c)) { const s = Flash.stats(d); h += `<a href="${Flash.link(d.id)}"><i>🗂️</i><span>Oefen ${esc(d.name)}<small>${s.due} te herhalen · ${s.nw} nieuw · ${s.pct}% gekend</small></span></a>`; }
   if (ch) h += `<button data-act="chapter" data-id="${ch.id}"><i>📖</i><span>Open ${esc(ch.title)}<small>Pagina's, status, moeilijke stukken, notities</small></span></button>`;
