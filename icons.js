@@ -103,9 +103,9 @@
   const map = (name, list) => list.split(' ').forEach(e => { M[e] = name; });
   map('logo', '🎓'); map('file', '📄'); map('summary', '📝 ✍'); map('book', '📚 📖 📘'); map('cards', '🗂'); map('stats', '📊 📈');
   map('warn', '⚠ 🥵'); map('check', '✅'); map('link', '🔗'); map('palm', '🌴'); map('undo', '↩ ↺ ↶'); map('arrowr', '➡ ↪'); map('robot', '🤖');
-  map('gear', '⚙'); map('star', '🎉 ✨ ⭐'); map('timer', '⏱ 🍅'); map('repeat', '🔁'); map('plan', '📆 📅 🗓'); map('trash', '🗑'); map('lock', '🔒');
-  map('known', '🧠'); map('rocket', '🚀'); map('flame', '🔥'); map('ext', '↗'); map('econ', '💶'); map('friends', '👥'); map('leaf', '🌱 🌷 🧬 🌸');
-  map('bulb', '💡 🤔'); map('cup', '☕'); map('target', '🎯'); map('person', '👩‍🏫 👤'); map('hourglass', '🐢 ⏳'); map('trophy', '🏆 🏅 💎 👑');
+  map('gear', '⚙'); map('star', '✨ ⭐'); map('timer', '⏱ 🍅'); map('repeat', '🔁'); map('plan', '📆 📅 🗓'); map('trash', '🗑'); map('lock', '🔒');
+  map('known', '🧠'); map('ext', '↗'); map('econ', '💶'); map('friends', '👥'); map('leaf', '🌱 🌷 🧬 🌸');
+  map('bulb', '💡 🤔'); map('cup', '☕'); map('target', '🎯'); map('person', '👩‍🏫 👤'); map('hourglass', '🐢 ⏳'); 
   map('pencil', '✏'); map('bolt', '⚡'); map('clipboard', '📋'); map('sun', '☀ 🌤 🌅'); map('clock', '🕘 🕒'); map('cloud', '☁'); map('pin', '📍');
   map('no', '🙅'); map('plus', '➕'); map('folder', '📁 📂'); map('play', '▶'); map('pause', '⏸'); map('stop', '⏹'); map('skip', '⏭'); map('image', '🖼');
   map('bell', '🔔 ⏰'); map('moon', '🦉'); map('music', '🎵'); map('mute', '🔇'); map('phone', '📳 📲'); map('save', '💾 ⬇'); map('share', '📤 ⬆');
@@ -114,7 +114,7 @@
   let RE;
   try { RE = new RegExp('\\p{Extended_Pictographic}\\uFE0F?(?:\\u200D\\p{Extended_Pictographic}\\uFE0F?)*', 'gu'); } catch (e) { RE = null; }
   const keyOf = m => m.replace(/️/g, '');
-  const SKIP = '.emj,.emoji-grid,.flash,.bubble,.card-row,script,style,textarea,svg,[data-emoji-ok]';
+  const SKIP = '.emj,.badge,.emoji-grid,.flash,.bubble,.card-row,script,style,textarea,svg,[data-emoji-ok]';
   window.noEmoji = s => RE ? String(s).replace(RE, m => (M[keyOf(m)] ? '' : m)).replace(/ {2,}/g, ' ').trim() : String(s);
   function fixText(node) {
     const text = node.nodeValue, p = node.parentElement;

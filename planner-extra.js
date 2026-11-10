@@ -215,7 +215,7 @@ function badgesList() {
   const cards = sum(cs, c => Flash.courseStats(c).kn);
   return [
     ['🌱', 'Eerste stap', 'Je eerste taak gedaan', t.days >= 1], ['🔥', '3 op een rij', '3 dagen na elkaar', st >= 3], ['⚡', 'Week-held', '7 dagen na elkaar', st >= 7],
-    ['🏅', 'Onstopbaar', '30 dagen na elkaar', st >= 30], ['🕒', '10 uur', '10 uur gestudeerd', t.min >= 600], ['💎', '50 uur', '50 uur gestudeerd', t.min >= 3000],
+    ['🏅', 'Onstopbaar', '30 dagen na elkaar', st >= 30], ['⏰', '10 uur', '10 uur gestudeerd', t.min >= 600], ['💎', '50 uur', '50 uur gestudeerd', t.min >= 3000],
     ['👑', '100 uur', '100 uur gestudeerd', t.min >= 6000], ['📄', '100 pagina\'s', '100 pagina\'s gedaan', t.units >= 100], ['📚', '1000 pagina\'s', '1000 pagina\'s gedaan', t.units >= 1000],
     ['🧠', 'Gekend!', 'Eerste hoofdstuk gekend', known >= 1], ['🎯', '10 hoofdstukken', '10 hoofdstukken gekend', known >= 10], ['🔁', 'Herhaler', '10 herhalingen gedaan', t.reviews >= 10],
     ['🍅', 'Pomodoro-pro', '25 timer-sessies', t.timer >= 25], ['🗂️', 'Kaartenkoning', '200 flashcards gekend', cards >= 200], ['🌅', 'Vroege vogel', 'Gestudeerd vóór 8u', t.early],
@@ -280,7 +280,7 @@ function friendsBoard() {
   const me = { id: 'me', min: rangeTotals(addDays(todayKey(), -6), todayKey()).min, me: true };
   const all = [...Social.week(), me].sort((a, b) => b.min - a.min);
   if (all.length < 2) return `<section class="card section stack"><h2>👥 Vrienden</h2><p class="muted small">Voeg vrienden toe in Flashcards, dan zie je hier wie er deze week het meest studeerde.</p><a class="btn sm" href="flashcards.html" style="justify-self:start">Naar Flashcards</a></section>`;
-  return `<section class="card section stack"><h2>👥 Deze week met vrienden</h2><div class="friends">${all.slice(0, 10).map((f, i) => { const n = f.me ? (Sync.me ? Sync.me.username : 'ik') : (Social.names[f.id] || 'vriend'); return `<div class="friend"><b class="num" style="width:22px">${i + 1}</b>${avatarHtml(n)}<span class="grow">${f.me ? '<b>Jij</b>' : '@' + esc(n)}</span><b class="num">${fmtMin(f.min)}</b></div>`; }).join('')}</div><p class="help">Vrienden zien alleen hoeveel minuten en pagina's je per dag studeerde, niet wát.</p></section>`;
+  return `<section class="card section stack"><h2>👥 Deze week met vrienden</h2><div class="friends">${all.slice(0, 10).map((f, i) => { const n = f.me ? (Sync.me ? Sync.me.username : 'ik') : (Social.names[f.id] || 'vriend'); return `<div class="friend"><b class="num" style="width:22px">${['🥇', '🥈', '🥉'][i] || i + 1}</b>${avatarHtml(n)}<span class="grow">${f.me ? '<b>Jij</b>' : '@' + esc(n)}</span><b class="num">${fmtMin(f.min)}</b></div>`; }).join('')}</div><p class="help">Vrienden zien alleen hoeveel minuten en pagina's je per dag studeerde, niet wát.</p></section>`;
 }
 
 /* ---------- calendar export ---------- */

@@ -126,7 +126,7 @@ function renderToday() {
   return `
     <section class="hello"><h1>${greeting()}${name ? ', ' + esc(name) : ''} ${allDone ? '' : ['☀️', '📚', '✨', '', '🌷', '🚀', ''][wday(T)]}</h1><p>${fmtDay(T, 'long')}</p></section>
     <section class="card summary">${ring(pct)}<div class="summary-text"><strong>${headline}</strong>
-      <div class="facts">${nCourses ? `<span class="fact">📚 ${plural(nCourses, 'vak', 'vakken')}</span>` : ''}${total ? `<span class="fact">⏱ ${fmtMin(total)}</span>` : ''}${units ? `<span class="fact">📄 ${fmtNum(units)} p.</span>` : ''}<span class="fact">${icon('flame')} ${plural(streak, 'dag', 'dagen')}</span></div></div></section>
+      <div class="facts">${nCourses ? `<span class="fact">📚 ${plural(nCourses, 'vak', 'vakken')}</span>` : ''}${total ? `<span class="fact">⏱ ${fmtMin(total)}</span>` : ''}${units ? `<span class="fact">📄 ${fmtNum(units)} p.</span>` : ''}<span class="fact">🔥 ${plural(streak, 'dag', 'dagen')}</span></div></div></section>
     ${examChips()}
     ${listCourses().some(c => validDay(c.exam) && c.exam >= T) ? '<button class="link-btn small" data-act="roster">🎓 Examenrooster delen met vrienden →</button>' : ''}
     ${alertsHtml(todayAlerts())}
