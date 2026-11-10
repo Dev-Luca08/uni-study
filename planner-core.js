@@ -493,7 +493,7 @@ const Flash = {
       return dn.includes(name) || fn.includes(name) || (fn && name.includes(fn) && fn.length >= 4);
     }).slice(0, 6);
   },
-  link: id => 'index.html#study=' + encodeURIComponent(id)
+  link: id => 'flashcards.html#study=' + encodeURIComponent(id)
 };
 /* remember how many cards you knew each day, for progress messages */
 function snapDecks() {

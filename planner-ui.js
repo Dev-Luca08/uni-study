@@ -51,7 +51,7 @@ function header() {
         <button class="icon-btn" data-act="look" aria-label="Personaliseren" title="Personaliseren">🎨</button>
         <button class="icon-btn" data-act="settings" aria-label="Instellingen" title="Instellingen">⚙️</button></div>
     </header>
-    <nav class="app-switch" aria-label="Kies onderdeel"><span class="on" aria-current="page">📅 Planning</span><a href="index.html">🗂️ Flashcards</a></nav>
+    <nav class="app-switch" aria-label="Kies onderdeel" style="grid-template-columns:auto 1fr 1fr"><a href="index.html" aria-label="Menu" style="padding:0 12px">🏠</a><span class="on" aria-current="page">📅 Planning</span><a href="flashcards.html">🗂️ Flashcards</a></nav>
     ${miniTimer()}`;
 }
 const TABS = [['today', '🏠', 'Vandaag'], ['cal', '📅', 'Kalender'], ['courses', '📚', 'Vakken'], ['timer', '⏱️', 'Timer'], ['stats', '📊', 'Stats']];
@@ -173,7 +173,7 @@ function examChips() {
 function todayAlerts() {
   const T = todayKey(), P = buildPlan(), a = [];
   if (!Sync.user && Sync.ready && Sync.sb && !lsGet('unistudy.hideLogin.v1', false))
-    a.push(['', '☁️', 'Log in om je planning op al je toestellen te hebben — met hetzelfde account als Flashcards.', `<a class="btn xs primary" href="index.html#auth">Inloggen</a> <button class="btn xs ghost" data-act="hide-login">Later</button>`]);
+    a.push(['', '☁️', 'Log in om je planning op al je toestellen te hebben — met hetzelfde account als Flashcards.', `<a class="btn xs primary" href="flashcards.html#auth">Inloggen</a> <button class="btn xs ghost" data-act="hide-login">Later</button>`]);
   if (capOf(T) === 0) a.push(['good', '🌴', isOff(T) ? 'Vandaag is een vrije dag. Rust hoort er ook bij! 😌' : 'Vandaag heb je geen studietijd ingesteld.', isOff(T) ? `<button class="btn xs" data-act="toggle-off" data-day="${T}">Toch studeren vandaag</button>` : `<button class="btn xs" data-act="settings">Beschikbaarheid aanpassen</button>`]);
   for (const b of backlog()) a.push(['warn', '↪️', `Gisteren bleef er ±${fmtMin(b.left)} ${esc(b.c.emoji)} ${esc(b.c.name)} liggen. Geen paniek: ik heb het verdeeld over de komende dagen.`]);
   for (const c of listCourses()) {
@@ -553,7 +553,7 @@ function courseFlashHtml(c) {
       ${rows ? `<div class="decks">${rows}</div>` : '<p class="muted small">Nog geen flashcards gekoppeld. Koppel een set, of laat AI er een maken van je samenvatting.</p>'}
       ${deckAdvice(c)}
       ${sugg.length ? `<div class="alert"><span class="ai">💡</span><div class="grow"><p>Deze sets lijken bij ${esc(c.name)} te horen:</p><div class="row">${sugg.map(d => `<button class="btn xs" data-act="deck-link" data-course="${c.id}" data-deck="${esc(d.id)}">+ ${esc(d.name)}</button>`).join('')}</div></div></div>` : ''}
-      <div class="row"><button class="btn sm primary" data-act="prompt" data-course="${c.id}">🤖 Flashcards maken met AI</button><button class="btn sm" data-act="deck-pick" data-course="${c.id}">🔗 Set koppelen</button><a class="btn sm" href="index.html#new">+ Nieuwe set</a></div>
+      <div class="row"><button class="btn sm primary" data-act="prompt" data-course="${c.id}">🤖 Flashcards maken met AI</button><button class="btn sm" data-act="deck-pick" data-course="${c.id}">🔗 Set koppelen</button><a class="btn sm" href="flashcards.html#new">+ Nieuwe set</a></div>
     </section>`;
 }
 function deckAdvice(c) {
@@ -810,7 +810,7 @@ SHEETS.prompt = () => {
       <div class="prompt-box"><textarea readonly id="prompt-text" aria-label="Prompt">${esc(text)}</textarea></div>
       <button class="btn primary block copy-btn" data-act="copy-prompt">📋 Kopieer prompt</button>
       <div class="row"><a class="btn sm" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT ↗</a><a class="btn sm" href="https://claude.ai/new" target="_blank" rel="noopener">Claude ↗</a><a class="btn sm" href="https://gemini.google.com/" target="_blank" rel="noopener">Gemini ↗</a></div>
-      <div class="row"><a class="btn sm primary" href="index.html#new">🗂️ Naar Flashcards: nieuwe set</a><button class="btn sm" data-act="deck-pick" data-course="${c.id}" ${ch ? `data-chapter="${ch.id}"` : ''}>🔗 Set koppelen</button></div>
+      <div class="row"><a class="btn sm primary" href="flashcards.html#new">🗂️ Naar Flashcards: nieuwe set</a><button class="btn sm" data-act="deck-pick" data-course="${c.id}" ${ch ? `data-chapter="${ch.id}"` : ''}>🔗 Set koppelen</button></div>
       <p class="help">Tip: maak liefst één set per hoofdstuk en koppel die aan dat hoofdstuk. Dan zie je per hoofdstuk hoe goed je het kent.</p>
     </div>`;
 };
@@ -822,7 +822,7 @@ SHEETS.decks = () => {
   return sheetHead(`🔗 Sets koppelen aan ${esc(ch ? ch.title : c.name)}`) + (ds.length ? `
     <form class="form" data-form="decks"><div class="list-edit">${ds.map(d => { const s = Flash.stats(d); const f = Flash.folderName(d.folder); return `<label class="le check-row"><input type="checkbox" name="d" value="${esc(d.id)}" ${linked.has(d.id) ? 'checked' : ''}><span>${esc(d.name)}<small class="muted"> · ${s.total} kaarten${f ? ' · 📁 ' + esc(f) : ''}${d.ro ? ' · gedeeld' : ''}</small></span></label>`; }).join('')}</div>
       <div class="sheet-foot"><button type="button" class="btn" data-act="sheet-close">Annuleren</button><button class="btn primary">Opslaan</button></div></form>`
-    : `<div class="card empty"><div class="big">🗂️</div><p class="muted">Je hebt nog geen flashcards op dit toestel${Sync.user ? ' of in je account' : ''}.</p><a class="btn primary" href="index.html#new">Maak een set in Flashcards</a></div>`);
+    : `<div class="card empty"><div class="big">🗂️</div><p class="muted">Je hebt nog geen flashcards op dit toestel${Sync.user ? ' of in je account' : ''}.</p><a class="btn primary" href="flashcards.html#new">Maak een set in Flashcards</a></div>`);
 };
 
 SHEETS.task = () => {

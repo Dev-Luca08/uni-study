@@ -3,7 +3,7 @@
   "short_name": "Uni Study",
   "description": "Studieplanner en flashcards in één: vakken, hoofdstukken, herhalingen, timers en slim herhalen. Made by Luca Cicarelli.",
   "lang": "nl",
-  "start_url": "./planner.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
@@ -42,7 +42,7 @@
     },
     {
       "name": "Flashcards",
-      "url": "./index.html",
+      "url": "./flashcards.html",
       "icons": [
         {
           "src": "icon-192.png",

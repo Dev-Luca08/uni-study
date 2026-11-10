@@ -279,7 +279,7 @@ function friendsBoard() {
   if (!Sync.user) return '';
   const me = { id: 'me', min: rangeTotals(addDays(todayKey(), -6), todayKey()).min, me: true };
   const all = [...Social.week(), me].sort((a, b) => b.min - a.min);
-  if (all.length < 2) return `<section class="card section stack"><h2>👥 Vrienden</h2><p class="muted small">Voeg vrienden toe in Flashcards, dan zie je hier wie er deze week het meest studeerde.</p><a class="btn sm" href="index.html" style="justify-self:start">Naar Flashcards</a></section>`;
+  if (all.length < 2) return `<section class="card section stack"><h2>👥 Vrienden</h2><p class="muted small">Voeg vrienden toe in Flashcards, dan zie je hier wie er deze week het meest studeerde.</p><a class="btn sm" href="flashcards.html" style="justify-self:start">Naar Flashcards</a></section>`;
   return `<section class="card section stack"><h2>👥 Deze week met vrienden</h2><div class="friends">${all.slice(0, 10).map((f, i) => { const n = f.me ? (Sync.me ? Sync.me.username : 'ik') : (Social.names[f.id] || 'vriend'); return `<div class="friend"><b class="num" style="width:22px">${['🥇', '🥈', '🥉'][i] || i + 1}</b>${avatarHtml(n)}<span class="grow">${f.me ? '<b>Jij</b>' : '@' + esc(n)}</span><b class="num">${fmtMin(f.min)}</b></div>`; }).join('')}</div><p class="help">Vrienden zien alleen hoeveel minuten en pagina's je per dag studeerde, niet wát.</p></section>`;
 }
 
@@ -389,7 +389,7 @@ SHEETS.settings = () => {
     <div class="sheet-foot"><button type="button" class="btn" data-act="sheet-close">Sluiten</button><button class="btn primary">Opslaan</button></div></form>
     <section class="section menu">
       <button data-act="look"><i>🎨</i><span>Personaliseren<small>Thema, kleuren, lettertype, achtergrond</small></span></button>
-      ${Sync.user ? `<button data-act="logout"><i>👤</i><span>Uitloggen${Sync.me ? ' (@' + esc(Sync.me.username) + ')' : ''}<small>Ook uit Flashcards. Je planning blijft veilig in je account.</small></span></button>` : `<a href="index.html#auth"><i>☁️</i><span>Inloggen of account maken<small>Je planning op al je toestellen</small></span></a>`}
+      ${Sync.user ? `<button data-act="logout"><i>👤</i><span>Uitloggen${Sync.me ? ' (@' + esc(Sync.me.username) + ')' : ''}<small>Ook uit Flashcards. Je planning blijft veilig in je account.</small></span></button>` : `<a href="flashcards.html#auth"><i>☁️</i><span>Inloggen of account maken<small>Je planning op al je toestellen</small></span></a>`}
       <button data-act="ics-all"><i>📆</i><span>Examens naar mijn agenda<small>Google, Apple of Outlook (.ics)</small></span></button>
       <button data-act="backup"><i>💾</i><span>Back-up downloaden</span></button>
       <label class="btn ghost" style="justify-content:flex-start"><i>📂</i>&nbsp; Back-up terugzetten<input type="file" accept=".json,application/json" hidden data-change="restore"></label>
