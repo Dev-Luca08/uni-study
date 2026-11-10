@@ -398,6 +398,7 @@ textarea.small-ta { min-height: 90px; font-family: var(--font-body); font-size: 
 </style>
 <script>window.UNI_FLASH_PAGE = true;</script>
 <script src="theme.js"></script>
+<script src="icons.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -1369,7 +1370,7 @@ function renderHome() {
       <div class="brand">${brandSvg}<div><h1>Uni Study</h1><p>Flashcards · ${Cloud.user && Cloud.me ? '@' + esc(Cloud.me.username) : 'je sets en mappen'}</p></div></div>
       ${topIcons()}
     </header>
-    <nav class="app-switch" aria-label="Kies onderdeel" style="grid-template-columns:auto 1fr 1fr"><a href="index.html" aria-label="Menu" style="padding:0 12px">🏠</a><a href="planner.html">📅 Planning</a><span class="on" aria-current="page">🗂️ Flashcards</span></nav>
+    <nav class="app-switch" aria-label="Kies onderdeel" style="grid-template-columns:auto 1fr 1fr"><a href="index.html" aria-label="Menu" style="padding:0 12px">${icon('logo')}</a><a href="planner.html">${icon('plan')} Planning</a><span class="on" aria-current="page">${icon('cards')} Flashcards</span></nav>
     ${loginBanner()}
     <div class="home-actions">
       <button class="btn primary new-btn" data-act="new">+ Nieuwe set</button>

@@ -1,6 +1,6 @@
 /* Uni Study — offline support (made by Luca Cicarelli) */
-const VERSION = 'uni-study-v5';
-const LOCAL = ['./', './index.html', './flashcards.html', './planner.html', './planner.css', './theme.js', './planner-core.js', './planner-plan.js', './planner-ui.js', './planner-extra.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
+const VERSION = 'uni-study-v7';
+const LOCAL = ['./', './index.html', './flashcards.html', './planner.html', './planner.css', './theme.js', './icons.js', './planner-core.js', './planner-plan.js', './planner-ui.js', './planner-extra.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 const REMOTE = [
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',

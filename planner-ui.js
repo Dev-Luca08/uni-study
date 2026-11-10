@@ -46,18 +46,18 @@ function header() {
   const tip = { local: 'Opgeslagen op dit toestel', offline: 'Offline — opgeslagen op dit toestel', syncing: 'Bezig met synchroniseren…', cloud: 'Gesynchroniseerd met je account', error: Sync.missing ? 'Online opslaan wordt nog ingesteld — alles staat veilig op dit toestel' : 'Synchroniseren lukte niet, ik probeer het opnieuw' }[st] || '';
   const who = Sync.me ? '@' + Sync.me.username : (Sync.user ? 'ingelogd' : 'op dit toestel');
   return `<header class="top">
-      <div class="brand"><span class="logo" aria-hidden="true">🎓</span><div><b>Uni Study</b><small>Planning · ${esc(who)}</small></div></div>
+      <div class="brand"><span class="logo" aria-hidden="true">${icon('logo')}</span><div><b>Uni Study</b><small>Planning · ${esc(who)}</small></div></div>
       <div class="top-actions"><span class="sync-dot ${st}" title="${esc(tip)}" role="img" aria-label="${esc(tip)}"></span>
-        <button class="icon-btn" data-act="look" aria-label="Personaliseren" title="Personaliseren">🎨</button>
-        <button class="icon-btn" data-act="settings" aria-label="Instellingen" title="Instellingen">⚙️</button></div>
+        <button class="icon-btn" data-act="look" aria-label="Personaliseren" title="Personaliseren">${icon('palette')}</button>
+        <button class="icon-btn" data-act="settings" aria-label="Instellingen" title="Instellingen">${icon('gear')}</button></div>
     </header>
-    <nav class="app-switch" aria-label="Kies onderdeel" style="grid-template-columns:auto 1fr 1fr"><a href="index.html" aria-label="Menu" style="padding:0 12px">🏠</a><span class="on" aria-current="page">📅 Planning</span><a href="flashcards.html">🗂️ Flashcards</a></nav>
+    <nav class="app-switch" aria-label="Kies onderdeel" style="grid-template-columns:auto 1fr 1fr"><a href="index.html" aria-label="Menu" style="padding:0 12px">${icon('logo')}</a><span class="on" aria-current="page">${icon('plan')} Planning</span><a href="flashcards.html">${icon('cards')} Flashcards</a></nav>
     ${miniTimer()}`;
 }
-const TABS = [['today', '🏠', 'Vandaag'], ['cal', '📅', 'Kalender'], ['courses', '📚', 'Vakken'], ['timer', '⏱️', 'Timer'], ['stats', '📊', 'Stats']];
+const TABS = [['today', 'today', 'Vandaag'], ['cal', 'plan', 'Kalender'], ['courses', 'book', 'Vakken'], ['timer', 'timer', 'Timer'], ['stats', 'stats', 'Stats']];
 function tabsBar() {
   return `<nav class="tabs" aria-label="Onderdelen"><div class="tabs-in">${TABS.map(([k, i, l]) =>
-    `<button class="tab${view.tab === k ? ' on' : ''}" data-act="tab" data-tab="${k}"${view.tab === k ? ' aria-current="page"' : ''}><i aria-hidden="true">${i}</i>${l}${k === 'timer' && Timer.s.running ? '<span class="pulse" aria-label="timer loopt"></span>' : ''}</button>`).join('')}</div></nav>`;
+    `<button class="tab${view.tab === k ? ' on' : ''}" data-act="tab" data-tab="${k}"${view.tab === k ? ' aria-current="page"' : ''}><i aria-hidden="true">${icon(i)}</i>${l}${k === 'timer' && Timer.s.running ? '<span class="pulse" aria-label="timer loopt"></span>' : ''}</button>`).join('')}</div></nav>`;
 }
 function render() {
   const t = view.tab;
@@ -126,7 +126,7 @@ function renderToday() {
   return `
     <section class="hello"><h1>${greeting()}${name ? ', ' + esc(name) : ''} ${allDone ? '🥳' : ['☀️', '📚', '✨', '💪', '🌷', '🚀', '🍀'][wday(T)]}</h1><p>${fmtDay(T, 'long')}</p></section>
     <section class="card summary">${ring(pct)}<div class="summary-text"><strong>${headline}</strong>
-      <div class="facts">${nCourses ? `<span class="fact">📚 ${plural(nCourses, 'vak', 'vakken')}</span>` : ''}${total ? `<span class="fact">⏱ ${fmtMin(total)}</span>` : ''}${units ? `<span class="fact">📄 ${fmtNum(units)} p.</span>` : ''}<span class="fact">🔥 ${plural(streak, 'dag', 'dagen')}</span></div></div></section>
+      <div class="facts">${nCourses ? `<span class="fact">📚 ${plural(nCourses, 'vak', 'vakken')}</span>` : ''}${total ? `<span class="fact">⏱ ${fmtMin(total)}</span>` : ''}${units ? `<span class="fact">📄 ${fmtNum(units)} p.</span>` : ''}<span class="fact">${icon('flame')} ${plural(streak, 'dag', 'dagen')}</span></div></div></section>
     ${examChips()}
     ${listCourses().some(c => validDay(c.exam) && c.exam >= T) ? '<button class="link-btn small" data-act="roster">🎓 Examenrooster delen met vrienden →</button>' : ''}
     ${alertsHtml(todayAlerts())}
@@ -167,7 +167,7 @@ function examChips() {
   if (!cs.length) return '';
   return `<div class="chips-scroll section" role="list" aria-label="Examens">${cs.map(c => {
     const n = diffDays(T, c.exam);
-    return `<button class="exam-chip${n <= 7 ? ' soon' : ''}" style="${cc(c)}" data-act="open-course" data-id="${c.id}" role="listitem"><span class="em">${esc(c.emoji)}</span><span><b>${esc(c.name)}</b><small>${n === 0 ? 'vandaag! 🍀' : n === 1 ? 'morgen' : 'over ' + n + ' dagen'} · ${fmtDay(c.exam, 'dm')}${c.examTime ? ' ' + esc(c.examTime) : ''}</small></span></button>`;
+    return `<button class="exam-chip${n <= 7 ? ' soon' : ''}" style="${cc(c)}" data-act="open-course" data-id="${c.id}" role="listitem"><span class="em">${emo(c)}</span><span><b>${esc(c.name)}</b><small>${n === 0 ? 'vandaag! 🍀' : n === 1 ? 'morgen' : 'over ' + n + ' dagen'} · ${fmtDay(c.exam, 'dm')}${c.examTime ? ' ' + esc(c.examTime) : ''}</small></span></button>`;
   }).join('')}</div>`;
 }
 
@@ -176,9 +176,9 @@ function todayAlerts() {
   if (!Sync.user && Sync.ready && Sync.sb && !lsGet('unistudy.hideLogin.v1', false))
     a.push(['', '☁️', 'Log in om je planning op al je toestellen te hebben — met hetzelfde account als Flashcards.', `<a class="btn xs primary" href="flashcards.html#auth">Inloggen</a> <button class="btn xs ghost" data-act="hide-login">Later</button>`]);
   if (capOf(T) === 0) a.push(['good', '🌴', isOff(T) ? 'Vandaag is een vrije dag. Rust hoort er ook bij! 😌' : 'Vandaag heb je geen studietijd ingesteld.', isOff(T) ? `<button class="btn xs" data-act="toggle-off" data-day="${T}">Toch studeren vandaag</button>` : `<button class="btn xs" data-act="settings">Beschikbaarheid aanpassen</button>`]);
-  for (const b of backlog()) a.push(['warn', '↪️', `Gisteren bleef er ±${fmtMin(b.left)} ${esc(b.c.emoji)} ${esc(b.c.name)} liggen. Geen paniek: ik heb het verdeeld over de komende dagen.`]);
+  for (const b of backlog()) a.push(['warn', '↪️', `Gisteren bleef er ±${fmtMin(b.left)} ${emo(b.c)} ${esc(b.c.name)} liggen. Geen paniek: ik heb het verdeeld over de komende dagen.`]);
   for (const c of listCourses()) {
-    const r = P.info[c.id] || {}, chs = chaptersOf(c.id), nm = `${esc(c.emoji)} ${esc(c.name)}`;
+    const r = P.info[c.id] || {}, chs = chaptersOf(c.id), nm = `${emo(c)} ${esc(c.name)}`;
     if (r.reason === 'past') {
       if (c.grade == null) a.push(['', '🎓', `Hoe ging je examen ${nm}? Vul je resultaat in en archiveer het vak.`, `<button class="btn xs primary" data-act="grade" data-id="${c.id}">Resultaat invullen</button>`]);
       continue;
@@ -216,7 +216,7 @@ function itemText(it) {
       return { title: `Alles herhalen: ${esc(names.length > 3 ? names.slice(0, 2).join(', ') + ' … ' + names[names.length - 1] : names.join(', '))}`, meta: `eindherhaling${it.lastDay ? ' · laatste dag: alles nog eens overlopen + flashcards' : ''}` };
     }
     case 'cards': return { title: 'Flashcards oefenen', meta: it.future ? `±${it.nNew} nieuwe kaarten + herhalen` : `${it.due} te herhalen · ${it.nNew} nieuw` };
-    case 'task': { const t = getTask(it.id); return { title: esc(t ? t.title : 'Taak'), meta: `${c ? esc(c.emoji + ' ' + c.name) : 'eigen taak'}${t && t.time ? ' · ' + esc(t.time) : ''}` }; }
+    case 'task': { const t = getTask(it.id); return { title: esc(t ? t.title : 'Taak'), meta: `${c ? (emo(c) + ' ' + esc(c.name)) : 'eigen taak'}${t && t.time ? ' · ' + esc(t.time) : ''}` }; }
     case 'exam': return { title: `Examen ${c ? esc(c.name) : ''}`, meta: [it.time, it.examType, it.place].filter(Boolean).map(esc).join(' · ') };
   }
   return { title: '', meta: '' };
@@ -254,7 +254,7 @@ function tasksHtml(items) {
     const tot = sum(g.items, i => i.min), dn = sum(g.items, i => i.min * itemFrac(i));
     const pct = tot ? Math.round(dn / tot * 100) : (g.items.every(itemDone) ? 100 : 0);
     const head = g.c
-      ? `<div class="group-head"><span class="em">${esc(g.c.emoji)}</span><div class="grow"><b>${esc(g.c.name)}</b><small>${examTxt(g.c)}</small></div><div class="bar-mini" role="img" aria-label="${pct}% gedaan"><span style="width:${pct}%"></span></div></div>`
+      ? `<div class="group-head"><span class="em">${emo(g.c)}</span><div class="grow"><b>${esc(g.c.name)}</b><small>${examTxt(g.c)}</small></div><div class="bar-mini" role="img" aria-label="${pct}% gedaan"><span style="width:${pct}%"></span></div></div>`
       : `<div class="group-head"><span class="em">✅</span><div class="grow"><b>Eigen taken</b></div></div>`;
     return `<section class="group" style="${g.c ? cc(g.c) : '--cc:var(--accent)'}">${head}<div class="items">${g.items.map(i => itemHtml(i)).join('')}</div></section>`;
   }).join('')}</div>`;
@@ -366,7 +366,7 @@ function renderCal() {
       <div class="seg" role="group" aria-label="Weergave"><button class="${mode === 'week' ? 'on' : ''}" data-act="cal-mode" data-v="week">Week</button><button class="${mode === 'month' ? 'on' : ''}" data-act="cal-mode" data-v="month">Maand</button></div></div>
     <button class="btn block soft" data-act="roster">🎓 Examenroosters — het mijne delen en dat van vrienden bekijken</button>
     ${mode === 'month' ? monthHtml(anchor) : weekHtml(anchor)}
-    <div class="legend">${listCourses().map(c => `<span style="${cc(c)}"><i></i>${esc(c.emoji)} ${esc(c.name)}</span>`).join('')}</div>
+    <div class="legend">${listCourses().map(c => `<span style="${cc(c)}"><i></i>${emo(c)} ${esc(c.name)}</span>`).join('')}</div>
     <p class="help section">Tip: tik op een taak voor opties. Eigen taken kan je op een computer naar een andere dag slepen.</p>`;
 }
 function weekHtml(anchor) {
@@ -376,7 +376,7 @@ function weekHtml(anchor) {
     <div class="week">${days.map(dayCardHtml).join('')}</div>`;
 }
 function chipLabel(it) {
-  const c = getCourse(it.course), ch = getChapter(it.chapter), e = c ? esc(c.emoji) + ' ' : '';
+  const c = getCourse(it.course), ch = getChapter(it.chapter), e = c ? emo(c) + ' ' : '';
   switch (it.type) {
     case 'study': return `${e}${ch ? esc(ch.title) : ''} · ${rangeText(it.unit, it.from, it.to)}`;
     case 'prep': return `${e}✍️ ${ch ? esc(ch.title) : ''}`;
@@ -394,7 +394,7 @@ function dayCardHtml(d) {
   if (past) {
     const by = {};
     for (const l of logsOn(d)) { const k = l.course || ''; const o = by[k] || (by[k] = { min: 0, units: 0 }); o.min += l.min || 0; if (l.type === 'study' || l.type === 'prep') o.units += l.units || 0; load += l.min || 0; }
-    chips = Object.entries(by).map(([cid, o]) => { const c = getCourse(cid); return `<span class="citem done-day" style="${cc(c)}"><span>${c ? esc(c.emoji + ' ' + c.name) : '✅ taken'}</span><small>${fmtMin(o.min)}${o.units ? ' · ' + o.units + ' p.' : ''}</small></span>`; }).join('');
+    chips = Object.entries(by).map(([cid, o]) => { const c = getCourse(cid); return `<span class="citem done-day" style="${cc(c)}"><span>${c ? (emo(c) + ' ' + esc(c.name)) : '✅ taken'}</span><small>${fmtMin(o.min)}${o.units ? ' · ' + o.units + ' p.' : ''}</small></span>`; }).join('');
     const exam = planDay(d).items.find(i => i.type === 'exam');
     if (exam) chips = `<span class="citem exam" style="${cc(getCourse(exam.course))}">${chipLabel(exam)}</span>` + chips;
   } else {
@@ -473,7 +473,7 @@ function courseCard(c) {
     : r.late && r.late.length ? '<span class="tag hard">achter op schema</span>' : '<span class="tag good">op schema</span>';
   const sub = [c.prof && '👩‍🏫 ' + esc(c.prof), c.credits && esc(c.credits) + ' sp', examTxt(c)].filter(Boolean).join(' · ');
   return `<button class="course-card" style="${cc(c)}" data-act="open-course" data-id="${c.id}">
-      <div class="cc-top"><span class="cc-emoji" aria-hidden="true">${esc(c.emoji)}</span><div class="grow"><div class="cc-name">${esc(c.name)}</div><div class="cc-sub">${sub}</div></div><b class="num">${p.pct}%</b></div>
+      <div class="cc-top"><span class="cc-emoji" aria-hidden="true">${emo(c)}</span><div class="grow"><div class="cc-name">${esc(c.name)}</div><div class="cc-sub">${sub}</div></div><b class="num">${p.pct}%</b></div>
       <div class="cc-body"><div class="pbar" role="img" aria-label="${p.pct}% klaar"><span class="k" style="width:${p.pct}%"></span></div>
         <div class="counts">${tag}<span><b>${known}</b>/${n} gekend</span>${p.counts.summary ? `<span>✍️ <b>${p.counts.summary}</b> samenvatten</span>` : ''}${p.counts.study ? `<span>📖 <b>${p.counts.study}</b> bezig</span>` : ''}${fs.decks ? `<span>🗂️ <b>${fs.pct}%</b> kaarten</span>` : ''}</div></div>
     </button>`;
@@ -501,7 +501,7 @@ function renderCourse(c) {
   return `
     <div class="top" style="padding-top:0"><button class="btn sm ghost" data-act="courses-back">← Vakken</button><span class="grow"></span><button class="btn sm" data-act="course-edit" data-id="${c.id}">✏️ Bewerken</button></div>
     <section class="course-hero" style="${cc(c)}">
-      <div class="ttl"><span class="cc-emoji" aria-hidden="true">${esc(c.emoji)}</span><div class="grow"><h1>${esc(c.name)}</h1><p class="muted small">${examTxt(c)}</p></div><div class="big-pct num">${p.pct}%</div></div>
+      <div class="ttl"><span class="cc-emoji" aria-hidden="true">${emo(c)}</span><div class="grow"><h1>${esc(c.name)}</h1><p class="muted small">${examTxt(c)}</p></div><div class="big-pct num">${p.pct}%</div></div>
       <div class="pbar" role="img" aria-label="${p.pct}% klaar"><span class="k" style="width:${p.pct}%"></span></div>
       <div class="info-chips">${chips}</div>
       ${exam && exam >= T ? `<div class="row"><a class="btn xs" href="${esc(gcalLink(c))}" target="_blank" rel="noopener">📆 Google Agenda</a><button class="btn xs" data-act="ics-course" data-id="${c.id}">📆 Apple/Outlook (.ics)</button></div>` : ''}
@@ -662,10 +662,10 @@ SHEETS.item = () => {
   const it = findItem(sheet.key, day);
   if (!it) return sheetHead('Taak') + '<p class="muted">Deze taak staat niet meer in de planning.</p>';
   const c = getCourse(it.course), ch = getChapter(it.chapter), isToday = day === T, done = itemDone(it), t = itemText(it);
-  let h = sheetHead(`${KIND[it.type].icon} ${t.title}`) + `<p class="muted">${c ? esc(c.emoji + ' ' + c.name) + ' · ' : ''}${t.meta}${it.min ? ' · ±' + fmtMin(it.min) : ''}${!isToday ? ' · ' + fmtDay(day, 'long') : ''}</p>`;
+  let h = sheetHead(`${KIND[it.type].icon} ${t.title}`) + `<p class="muted">${c ? (emo(c) + ' ' + esc(c.name)) + ' · ' : ''}${t.meta}${it.min ? ' · ±' + fmtMin(it.min) : ''}${!isToday ? ' · ' + fmtDay(day, 'long') : ''}</p>`;
   h += '<div class="menu section">';
   if (it.type === 'exam') {
-    if (c) h += `<a href="${esc(gcalLink(c))}" target="_blank" rel="noopener"><i>📆</i><span>Zet in Google Agenda</span></a><button data-act="ics-course" data-id="${c.id}"><i>📆</i><span>Download voor Apple/Outlook (.ics)</span></button><button data-act="open-course" data-id="${c.id}"><i>${esc(c.emoji)}</i><span>Open ${esc(c.name)}</span></button>`;
+    if (c) h += `<a href="${esc(gcalLink(c))}" target="_blank" rel="noopener"><i>📆</i><span>Zet in Google Agenda</span></a><button data-act="ics-course" data-id="${c.id}"><i>📆</i><span>Download voor Apple/Outlook (.ics)</span></button><button data-act="open-course" data-id="${c.id}"><i>${emo(c)}</i><span>Open ${esc(c.name)}</span></button>`;
     return h + '</div>';
   }
   if (isToday || it.type === 'task' || it.type === 'review') h += `<button data-act="item-tick"><i>${done ? '↩️' : '✅'}</i><span>${done ? 'Toch nog niet gedaan' : 'Helemaal gedaan'}</span></button>`;
@@ -686,10 +686,10 @@ SHEETS.course = () => {
   const d = sheet.draft || c || { name: '', emoji: sheet.emoji || '📘', color: COLORS[listCourses(true).length % COLORS.length], difficulty: 3, priority: 'normaal' };
   return sheetHead(c ? 'Vak bewerken' : 'Nieuw vak') + `
     <form class="form" data-form="course">
-      <div class="row" style="gap:12px"><span class="cc-emoji" id="emoji-prev" style="--cc:${esc(d.color)};width:58px;height:58px;font-size:2rem">${esc(d.emoji)}</span>
+      <div class="row" style="gap:12px"><span class="cc-emoji" id="emoji-prev" style="--cc:${esc(d.color)};width:58px;height:58px;font-size:2rem">${emo(d)}</span>
         <label class="fld grow"><span>Naam van het vak</span><input class="field" name="name" value="${esc(d.name)}" required maxlength="60" placeholder="bv. Wiskunde 1" autofocus></label></div>
-      <div class="fld"><span class="lbl">Emoji</span><div class="emoji-grid">${EMOJIS.map(e => `<button type="button" data-act="pick-emoji" data-v="${e}" aria-pressed="${e === d.emoji}">${e}</button>`).join('')}</div>
-        <label class="row small muted">Of typ je eigen emoji: <input class="field" name="emoji" value="${esc(d.emoji)}" maxlength="8" style="width:80px" data-input="emoji-live"></label></div>
+      <div class="fld"><span class="lbl">Icoon of emoji</span><div class="emoji-grid" style="max-height:none">${UniIcon.list.map(n => `<button type="button" data-act="pick-emoji" data-v="i:${n}" aria-pressed="${d.emoji === 'i:' + n}" aria-label="${UniIcon.label(n)}" title="${UniIcon.label(n)}">${icon(n)}</button>`).join('')}</div><div class="emoji-grid">${EMOJIS.map(e => `<button type="button" data-act="pick-emoji" data-v="${e}" aria-pressed="${e === d.emoji}">${e}</button>`).join('')}</div>
+        <label class="row small muted">Of typ je eigen emoji: <input class="field" value="${/^i:/.test(d.emoji) ? '' : esc(d.emoji)}" maxlength="8" style="width:80px" data-input="emoji-live" aria-label="Eigen emoji"><input type="hidden" name="emoji" value="${esc(d.emoji)}"></label></div>
       <div class="fld"><span class="lbl">Kleur</span>${swRow('color', d.color)}</div>
       <div class="fgrid">
         <label class="fld"><span>Prof</span><input class="field" name="prof" value="${esc(d.prof || '')}" maxlength="60" placeholder="bv. Prof. Peeters"></label>
@@ -836,7 +836,7 @@ SHEETS.task = () => {
       <div class="fgrid">
         <label class="fld"><span>Dag</span><input class="field" type="date" name="day" value="${esc(d.day)}" required></label>
         <label class="fld"><span>Uur (optioneel)</span><input class="field" type="time" name="time" value="${esc(d.time || '')}"></label>
-        <label class="fld"><span>Vak</span><select class="field" name="course">${opt('', '— geen —', d.course)}${listCourses().map(c => opt(c.id, c.emoji + ' ' + c.name, d.course)).join('')}</select></label>
+        <label class="fld"><span>Vak</span><select class="field" name="course">${opt('', '— geen —', d.course)}${listCourses().map(c => opt(c.id, emoT(c) + ' ' + c.name, d.course)).join('')}</select></label>
         <label class="fld"><span>Hoe lang? (min)</span><input class="field" type="number" name="min" min="0" step="5" value="${esc(d.min ?? 30)}" inputmode="numeric"></label>
       </div>
       <label class="fld"><span>Notitie</span><textarea class="field" name="note" rows="3">${esc(d.note || '')}</textarea></label>
@@ -915,7 +915,7 @@ Object.assign(ACT, {
   'pick-emoji'(el) {
     const f = el.closest('form'); f.elements.emoji.value = el.dataset.v;
     f.querySelectorAll('[data-act="pick-emoji"]').forEach(b => b.setAttribute('aria-pressed', b === el));
-    const p = document.getElementById('emoji-prev'); if (p) p.textContent = el.dataset.v;
+    const p = document.getElementById('emoji-prev'); if (p) p.innerHTML = emoHtml(el.dataset.v);
   },
   'pick-color'(el) {
     const f = el.closest('form, .sheet'); const inp = f.querySelector(`input[type="color"][name="${el.dataset.name}"]`);
@@ -998,7 +998,7 @@ function keepChapterForm(then) {
 
 /* ---------- live inputs ---------- */
 Object.assign(INPUT, {
-  'emoji-live'(el) { const p = document.getElementById('emoji-prev'); if (p && el.value.trim()) p.textContent = el.value.trim(); },
+  'emoji-live'(el) { const v = el.value.trim(); if (!v) return; el.closest('form').elements.emoji.value = v; const p = document.getElementById('emoji-prev'); if (p) p.textContent = v; },
   'color-live'(el) {
     const p = document.getElementById('emoji-prev'); if (p && el.name === 'color') p.style.setProperty('--cc', el.value);
     el.closest('.swatches').querySelectorAll('[data-act="pick-color"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v.toLowerCase() === el.value.toLowerCase()));
@@ -1092,7 +1092,7 @@ Object.assign(FORMS, {
     const v = harvest(f);
     const name = (v.name || '').trim().slice(0, 60); if (!name) return;
     const data = {
-      name, emoji: (v.emoji || '📘').trim().slice(0, 8) || '📘', color: /^#[0-9a-f]{6}$/i.test(v.color) ? v.color : COLORS[0],
+      name, emoji: (v.emoji || '📘').trim().slice(0, 12) || '📘', color: /^#[0-9a-f]{6}$/i.test(v.color) ? v.color : COLORS[0],
       prof: (v.prof || '').trim().slice(0, 60), credits: v.credits ? String(clamp(num(v.credits), 0, 60)) : '', semester: v.semester || '',
       priority: v.priority || 'normaal', difficulty: clamp(int(v.difficulty, 3), 1, 5),
       exam: validDay(v.exam) ? v.exam : '', examTime: v.examTime || '', examType: v.examType || '', examPlace: (v.examPlace || '').trim().slice(0, 80)
@@ -1103,7 +1103,7 @@ Object.assign(FORMS, {
     if (data.exam && data.exam >= todayKey() && c.archived && c.grade == null) c.archived = false;
     commit(); closeSheet();
     if (!sheet) { view = { tab: 'courses', course: c.id }; lsSet(LS_TAB, 'courses'); }
-    render(); scrollTo(0, 0); toast(`${c.emoji} ${c.name} opgeslagen ✓`);
+    render(); scrollTo(0, 0); toast(`${emoT(c)} ${c.name} opgeslagen ✓`);
   },
   'course-plan'(f) {
     const c = getCourse(f.dataset.id), v = harvest(f);

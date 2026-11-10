@@ -112,7 +112,7 @@ const Timer = {
 };
 const TC = 2 * Math.PI * 120;
 const PHASE = { focus: 'Focus', short: 'Korte pauze', long: 'Lange pauze' };
-function timerLabel() { const s = Timer.s, c = getCourse(s.course); return s.label || (c ? c.emoji + ' ' + c.name : 'Vrij studeren'); }
+function timerLabel() { const s = Timer.s, c = getCourse(s.course); return s.label || (c ? emoT(c) + ' ' + c.name : 'Vrij studeren'); }
 function miniTimer() {
   if (view.tab === 'timer' || !Timer.active()) return '';
   return `<div class="mini-timer"><b data-ttime>${Timer.show()}</b><span class="grow">${Timer.s.mode === 'pomo' ? PHASE[Timer.s.phase] + ' · ' : ''}${esc(timerLabel())}</span><button class="btn xs" data-act="timer-toggle">${Timer.s.running ? '⏸' : '▶'}</button><button class="btn xs" data-act="tab" data-tab="timer">Open</button></div>`;
@@ -134,14 +134,14 @@ function renderTimer() {
         <button class="btn" data-act="focus-open">🎯 Focusmodus</button></div>
     </section>
     <section class="card section form">
-      <div class="fgrid"><label class="fld"><span>Voor welk vak?</span><select class="field" data-change="timer-course">${opt('', '— vrij studeren —', s.course)}${listCourses().map(x => opt(x.id, x.emoji + ' ' + x.name, s.course)).join('')}</select></label>
+      <div class="fgrid"><label class="fld"><span>Voor welk vak?</span><select class="field" data-change="timer-course">${opt('', '— vrij studeren —', s.course)}${listCourses().map(x => opt(x.id, emoT(x) + ' ' + x.name, s.course)).join('')}</select></label>
       ${chs.length ? `<label class="fld"><span>Hoofdstuk</span><select class="field" data-change="timer-chapter">${opt('', '— geen —', s.chapter)}${chs.map(x => opt(x.id, x.title, s.chapter)).join('')}</select></label>` : ''}</div>
       ${s.mode === 'pomo' ? `<div class="stack"><span class="lbl">Ritme (focus / pauze)</span><div class="chips-pick">${[[25, 5, 15], [50, 10, 20], [90, 15, 30], [15, 3, 10]].map(([f, sh, lg]) => `<button data-act="pomo-preset" data-f="${f}" data-s="${sh}" data-l="${lg}" aria-pressed="${p.focus === f && p.short === sh}">${f} / ${sh}</button>`).join('')}<button data-act="settings" aria-pressed="false">Eigen ritme…</button></div></div>` : ''}
       ${s.mode === 'count' ? `<label class="fld"><span>Aantal minuten</span><input class="field" type="number" min="1" max="600" value="${s.countMin}" data-change="timer-count" inputmode="numeric" style="max-width:140px"></label>` : ''}
       <p class="help">De tijd die je met de timer studeert telt mee in je statistieken${c ? ' en in je tempo voor ' + esc(c.name) : ''}.</p>
     </section>
     <section class="card section stack"><h2>Vandaag</h2>
-      ${sess.length ? `<p><b>${fmtMin(sum(sess, l => l.min))}</b> met de timer · ${plural(sess.length, 'sessie', 'sessies')}</p><div class="sessions">${sess.slice(0, 12).map(l => { const x = getCourse(l.course); return `<div class="sess" style="${cc(x)}"><i></i><span class="grow">${x ? esc(x.emoji + ' ' + x.name) : 'Vrij studeren'}</span><span class="muted num">${new Date(l.at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}</span><b class="num">${fmtMin(l.min)}</b><button class="icon-btn sm" data-act="sess-del" data-id="${l.id}" aria-label="Verwijder sessie">✕</button></div>`; }).join('')}</div>` : '<p class="muted small">Nog geen sessies vandaag. Start de timer en ga ervoor! 💪</p>'}
+      ${sess.length ? `<p><b>${fmtMin(sum(sess, l => l.min))}</b> met de timer · ${plural(sess.length, 'sessie', 'sessies')}</p><div class="sessions">${sess.slice(0, 12).map(l => { const x = getCourse(l.course); return `<div class="sess" style="${cc(x)}"><i></i><span class="grow">${x ? (emo(x) + ' ' + esc(x.name)) : 'Vrij studeren'}</span><span class="muted num">${new Date(l.at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}</span><b class="num">${fmtMin(l.min)}</b><button class="icon-btn sm" data-act="sess-del" data-id="${l.id}" aria-label="Verwijder sessie">✕</button></div>`; }).join('')}</div>` : '<p class="muted small">Nog geen sessies vandaag. Start de timer en ga ervoor! 💪</p>'}
     </section>`;
 }
 let wakeLock = null;
@@ -242,11 +242,11 @@ function renderStats() {
     <section class="card section stack"><h2>Minuten per dag</h2><p class="muted small">Laatste 14 dagen</p>
       <div class="chart"><span class="ymax">${fmtMin(max)}</span><div class="bars">${days.map((d, i) => `<button class="b${d === T ? ' today' : ''}${mins[i] ? '' : ' zero'}" data-act="bar" aria-label="${fmtDay(d, 'long')}: ${fmtMin(mins[i])}"><span class="tip">${fmtDay(d)} · ${fmtMin(mins[i])}</span><span class="bv" style="height:${mins[i] ? Math.max(3, mins[i] / max * 100) : 0}%"></span></button>`).join('')}</div>
       <div class="axis">${days.map((d, i) => `<span>${i % 2 || d === T ? parseDay(d).getDate() : ''}</span>`).join('')}</div></div></section>
-    <section class="card section stack"><h2>Tijd per vak</h2>${byC.length ? `<div class="hbars">${byC.map(([c, m]) => `<div class="hb" style="${cc(c)}"><div class="lab"><b>${esc(c.emoji)} ${esc(c.name)}</b><span class="num muted">${fmtMin(m)}</span></div><div class="tr"><span style="width:${m / mc * 100}%"></span></div></div>`).join('')}</div>` : '<p class="muted small">Vink taken af of gebruik de timer, dan zie je hier waar je tijd naartoe gaat.</p>'}</section>
-    <section class="card section stack"><h2>Voortgang per vak</h2>${listCourses().length ? `<div class="hbars">${listCourses().map(c => { const p = courseProgress(c); return `<div class="hb" style="${cc(c)}"><div class="lab"><b>${esc(c.emoji)} ${esc(c.name)}</b><span class="num muted">${p.pct}% · ${examTxt(c)}</span></div><div class="tr"><span style="width:${p.pct}%"></span></div></div>`; }).join('')}</div>` : '<p class="muted small">Nog geen vakken.</p>'}</section>
+    <section class="card section stack"><h2>Tijd per vak</h2>${byC.length ? `<div class="hbars">${byC.map(([c, m]) => `<div class="hb" style="${cc(c)}"><div class="lab"><b>${emo(c)} ${esc(c.name)}</b><span class="num muted">${fmtMin(m)}</span></div><div class="tr"><span style="width:${m / mc * 100}%"></span></div></div>`).join('')}</div>` : '<p class="muted small">Vink taken af of gebruik de timer, dan zie je hier waar je tijd naartoe gaat.</p>'}</section>
+    <section class="card section stack"><h2>Voortgang per vak</h2>${listCourses().length ? `<div class="hbars">${listCourses().map(c => { const p = courseProgress(c); return `<div class="hb" style="${cc(c)}"><div class="lab"><b>${emo(c)} ${esc(c.name)}</b><span class="num muted">${p.pct}% · ${examTxt(c)}</span></div><div class="tr"><span style="width:${p.pct}%"></span></div></div>`; }).join('')}</div>` : '<p class="muted small">Nog geen vakken.</p>'}</section>
     ${friendsBoard()}
     <section class="card section stack"><h2>Badges <span class="muted small">${badges.filter(b => b[3]).length}/${badges.length}</span></h2><div class="badges">${badges.map(([e, n, d, ok]) => `<div class="badge${ok ? '' : ' locked'}"><span class="be">${e}</span><b>${n}</b><small>${d}</small></div>`).join('')}</div></section>
-    ${graded.length ? `<section class="card section stack"><h2>🎓 Resultaten</h2><table class="grades"><tr><th>Vak</th><th>SP</th><th style="text-align:right">Cijfer</th></tr>${graded.map(c => `<tr><td>${esc(c.emoji)} ${esc(c.name)}</td><td>${esc(c.credits || '–')}</td><td class="n"><b>${fmtGrade(c)}</b></td></tr>`).join('')}<tr><td><b>Gewogen gemiddelde</b></td><td></td><td class="n"><b>${avgGrade(graded)}</b></td></tr></table></section>` : ''}
+    ${graded.length ? `<section class="card section stack"><h2>🎓 Resultaten</h2><table class="grades"><tr><th>Vak</th><th>SP</th><th style="text-align:right">Cijfer</th></tr>${graded.map(c => `<tr><td>${emo(c)} ${esc(c.name)}</td><td>${esc(c.credits || '–')}</td><td class="n"><b>${fmtGrade(c)}</b></td></tr>`).join('')}<tr><td><b>Gewogen gemiddelde</b></td><td></td><td class="n"><b>${avgGrade(graded)}</b></td></tr></table></section>` : ''}
     <section class="section row"><button class="btn sm" data-act="ics-all">📆 Alle examens naar mijn agenda (.ics)</button></section>`;
 }
 ACT.bar = el => { document.querySelectorAll('.bars .b.show').forEach(b => b !== el && b.classList.remove('show')); el.classList.toggle('show'); };
@@ -524,11 +524,11 @@ async function loadRoster(force) {
 }
 function examLine(x, mine) {
   const same = mine && mine.find(m => m.d === x.d);
-  return `<div class="sess" style="--cc:${esc(x.c || 'var(--accent)')}"><i></i><span class="grow"><b>${esc(x.e || '📝')} ${esc(x.n)}</b><br><span class="small muted">${fmtDay(x.d, 'long')}${x.t ? ' · ' + esc(x.t) : ''}${x.k ? ' · ' + esc(x.k) : ''}${x.p ? ' · 📍 ' + esc(x.p) : ''}${same ? ` · <span class="tag acc">zelfde dag als jouw ${esc(same.n)}</span>` : ''}</span></span><span class="tag">${relDay(x.d)}</span></div>`;
+  return `<div class="sess" style="--cc:${esc(x.c || 'var(--accent)')}"><i></i><span class="grow"><b>${emoHtml(x.e || '📝')} ${esc(x.n)}</b><br><span class="small muted">${fmtDay(x.d, 'long')}${x.t ? ' · ' + esc(x.t) : ''}${x.k ? ' · ' + esc(x.k) : ''}${x.p ? ' · 📍 ' + esc(x.p) : ''}${same ? ` · <span class="tag acc">zelfde dag als jouw ${esc(same.n)}</span>` : ''}</span></span><span class="tag">${relDay(x.d)}</span></div>`;
 }
 function rosterText() {
   const ex = myExams(); if (!ex.length) return '';
-  return `📚 Mijn examenrooster${myName() ? ' (' + myName() + ')' : ''}:\n` + ex.map(x => `${x.e} ${x.n} — ${fmtDay(x.d, 'long')}${x.t ? ' om ' + x.t : ''}${x.k ? ' (' + x.k + ')' : ''}${x.p ? ', ' + x.p : ''}`).join('\n') + '\n\nGemaakt met Uni Study 🎓 ' + location.origin + location.pathname.replace(/[^/]*$/, '');
+  return `📚 Mijn examenrooster${myName() ? ' (' + myName() + ')' : ''}:\n` + ex.map(x => `${emoTxt(x.e)} ${x.n} — ${fmtDay(x.d, 'long')}${x.t ? ' om ' + x.t : ''}${x.k ? ' (' + x.k + ')' : ''}${x.p ? ', ' + x.p : ''}`).join('\n') + '\n\nGemaakt met Uni Study 🎓 ' + location.origin + location.pathname.replace(/[^/]*$/, '');
 }
 SHEETS.roster = () => {
   const mine = myExams(), T = todayKey();

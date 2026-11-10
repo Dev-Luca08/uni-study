@@ -13,13 +13,13 @@
    ========================================================= */
 
 const KIND = {
-  prep: { icon: '✍️', label: 'Samenvatting maken' },
-  study: { icon: '📖', label: 'Studeren' },
-  review: { icon: '🔁', label: 'Herhalen' },
-  final: { icon: '🎯', label: 'Alles herhalen' },
-  cards: { icon: '🗂️', label: 'Flashcards' },
+  prep: { icon: icon('summary'), label: 'Samenvatting maken' },
+  study: { icon: icon('book'), label: 'Studeren' },
+  review: { icon: icon('repeat'), label: 'Herhalen' },
+  final: { icon: icon('exam'), label: 'Alles herhalen' },
+  cards: { icon: icon('cards'), label: 'Flashcards' },
   task: { icon: '✅', label: 'Taak' },
-  exam: { icon: '🎓', label: 'Examen' }
+  exam: { icon: icon('exam'), label: 'Examen' }
 };
 const KORDER = { exam: -1, review: 0, prep: 1, study: 2, final: 3, cards: 4, task: 5 };
 

@@ -28,19 +28,20 @@ if (location.hash.length > 1) location.replace('flashcards.html' + location.hash
 .choices { display: grid; gap: 14px; }
 .choice { display: flex; align-items: center; gap: 16px; padding: 20px 18px; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: calc(var(--r) + 4px); box-shadow: var(--shadow); transition: transform .12s; }
 .choice:hover { transform: translateY(-2px); border-color: var(--accent); }
-.choice .em { width: 62px; height: 62px; border-radius: 18px; display: grid; place-items: center; font-size: 2rem; background: var(--accent-soft); flex: none; }
+.choice .em { color: var(--accent); width: 62px; height: 62px; border-radius: 18px; display: grid; place-items: center; font-size: 2rem; background: var(--accent-soft); flex: none; }
 .choice b { font-family: var(--font-display); font-size: 1.45rem; display: block; line-height: 1.2; }
 .choice span.d { color: var(--muted); font-size: .93rem; }
 .choice .go { margin-left: auto; font-size: 1.4rem; color: var(--accent); }
 </style>
 <script src="theme.js"></script>
+<script src="icons.js"></script>
 </head>
 <body>
 <div id="app">
-  <header class="hero"><span class="logo" aria-hidden="true">🎓</span><h1>Uni Study</h1><p class="muted">Wat wil je doen?</p></header>
+  <header class="hero"><span class="logo" aria-hidden="true" data-ic="logo"></span><h1>Uni Study</h1><p class="muted">Wat wil je doen?</p></header>
   <nav class="choices" aria-label="Kies onderdeel">
-    <a class="choice" href="planner.html"><span class="em" aria-hidden="true">📅</span><span><b>Planning</b><span class="d">Vakken, hoofdstukken, wat je vandaag moet doen, timers en statistieken</span></span><span class="go" aria-hidden="true">›</span></a>
-    <a class="choice" href="flashcards.html"><span class="em" aria-hidden="true">🗂️</span><span><b>Flashcards</b><span class="d">Je sets oefenen met slim herhalen, vrienden en delen</span></span><span class="go" aria-hidden="true">›</span></a>
+    <a class="choice" href="planner.html"><span class="em" aria-hidden="true" data-ic="plan"></span><span><b>Planning</b><span class="d">Vakken, hoofdstukken, wat je vandaag moet doen, timers en statistieken</span></span><span class="go" aria-hidden="true">›</span></a>
+    <a class="choice" href="flashcards.html"><span class="em" aria-hidden="true" data-ic="cards"></span><span><b>Flashcards</b><span class="d">Je sets oefenen met slim herhalen, vrienden en delen</span></span><span class="go" aria-hidden="true">›</span></a>
   </nav>
   <footer class="footer">Made by <b>Luca Cicarelli</b></footer>
 </div>
