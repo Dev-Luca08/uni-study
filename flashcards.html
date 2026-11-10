@@ -408,7 +408,7 @@ textarea.small-ta { min-height: 90px; font-family: var(--font-body); font-size: 
 <script>
 'use strict';
 /* =========================================================
-   Uni Flashcards — made by Luca Cicarelli
+   Uni Study — made by Luca Cicarelli
    ========================================================= */
 
 const LS_KEY = 'tarjeta.decks.v1';
@@ -1249,19 +1249,14 @@ async function importBackup(file) {
     }
     render();
     toast(added || updated ? `Back-up teruggezet: ${plural(added, 'nieuwe set', 'nieuwe sets')}${updated ? `, ${updated} bijgewerkt` : ''}` : 'Alles uit deze back-up stond er al');
-  } catch (e) { toast('Dit is geen back-up van Uni Flashcards.'); }
+  } catch (e) { toast('Dit is geen back-up van Uni Study.'); }
 }
 
 /* ---------- Install as an app (only outside claude.ai) ---------- */
 let installPrompt = null;
 const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-function installHint() {
-  if (window.claude || isStandalone()) return '';
-  if (installPrompt) return `<button class="btn block install-btn" data-act="install">📲 Installeer Uni Flashcards als app</button>`;
-  if (isIOS()) return `<p class="install-tip">📲 <b>Installeren op iPhone:</b> tik in Safari op het Deel-icoon en kies <b>“Zet op beginscherm”</b>.</p>`;
-  return '';
-}
+function installHint() { return ''; } // installing now lives on the Uni Study home page
 
 /* =========================================================
    Views
@@ -2042,7 +2037,7 @@ const Cloud = {
       await this.pullOwn();
       await this.loadShared();
       await this.refreshSocial();
-    } catch (e) { console.warn('Uni Flashcards sync', e); Store.errorShown = true; }
+    } catch (e) { console.warn('Uni Study sync', e); Store.errorShown = true; }
     this.subscribe();
     this.startPolling();
     Stats.flush();
@@ -2112,7 +2107,7 @@ const Cloud = {
     this.chain = this.chain.then(fn).then(() => {
       if (Store.errorShown) { Store.errorShown = false; updateSyncChip(); }
     }).catch(e => {
-      console.warn('Uni Flashcards sync', e);
+      console.warn('Uni Study sync', e);
       if (!Store.errorShown) { Store.errorShown = true; updateSyncChip(); }
     });
     return this.chain;
@@ -2953,7 +2948,7 @@ Object.assign(ACT, {
     toast(error ? 'Lukte niet. Probeer opnieuw.' : (msg[data] || 'Klaar'));
   },
   'copy-friendlink'() { copyText(appUrl() + '#friend=' + Cloud.me.username); },
-  'share-friendlink'() { shareText('Uni Flashcards', `Voeg me toe als vriend op Uni Flashcards: @${Cloud.me.username}`, appUrl() + '#friend=' + Cloud.me.username); },
+  'share-friendlink'() { shareText('Uni Study', `Voeg me toe als vriend op Uni Study: @${Cloud.me.username}`, appUrl() + '#friend=' + Cloud.me.username); },
   async join(el) {
     const { data, error } = await Cloud.sb.rpc('join_item', { p_owner: el.dataset.owner, p_kind: el.dataset.kind, p_item: el.dataset.id });
     if (error || data !== 'joined') { toast(data === 'no_access' ? 'Je hebt geen toegang meer tot deze map of set.' : 'Lukte niet. Probeer opnieuw.'); return; }
@@ -2992,7 +2987,7 @@ Object.assign(ACT, {
     view.data = { ...(view.data || {}), link: appUrl() + '#link=' + data.token }; render();
   },
   'copy-link'() { copyText(view.data.link); },
-  'share-link'() { const obj = itemOf(view.kind, view.id); shareText(obj.name, `Bekijk “${obj.name}” op Uni Flashcards`, view.data.link); },
+  'share-link'() { const obj = itemOf(view.kind, view.id); shareText(obj.name, `Bekijk “${obj.name}” op Uni Study`, view.data.link); },
   async 'comment-status'(el) { await Cloud.sb.rpc('set_comment_status', { p_id: +el.dataset.cid, p_status: el.dataset.st }); loadItem(); },
   async 'comment-del'(el) { await Cloud.sb.from('comments').delete().eq('id', +el.dataset.cid); loadItem(); },
   async 'remove-member'(el) {

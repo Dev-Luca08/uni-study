@@ -43,10 +43,27 @@ if (location.hash.length > 1) location.replace('flashcards.html' + location.hash
     <a class="choice" href="planner.html"><span class="em" aria-hidden="true" data-ic="plan"></span><span><b>Planning</b><span class="d">Vakken, hoofdstukken, wat je vandaag moet doen, timers en statistieken</span></span><span class="go" aria-hidden="true">›</span></a>
     <a class="choice" href="flashcards.html"><span class="em" aria-hidden="true" data-ic="cards"></span><span><b>Flashcards</b><span class="d">Je sets oefenen met slim herhalen, vrienden en delen</span></span><span class="go" aria-hidden="true">›</span></a>
   </nav>
+  <div id="install" style="margin-top:18px"></div>
   <footer class="footer">Made by <b>Luca Cicarelli</b></footer>
 </div>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
+// Install Uni Study as an app (only shown in the browser, not inside the installed app)
+(function () {
+  var box = document.getElementById('install'), prompt = null;
+  var standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (standalone) return;
+  function draw() {
+    if (prompt) { box.innerHTML = '<button class="btn block primary" id="inst-btn" style="min-height:52px">' + icon('save') + ' Installeer Uni Study als app</button>';
+      document.getElementById('inst-btn').onclick = function () { prompt.prompt(); prompt.userChoice.then(function () { prompt = null; box.innerHTML = ''; }, function () {}); }; }
+    else if (ios) box.innerHTML = '<p class="alert"><span>' + icon('save') + '</span><span><b>Installeren op iPhone:</b> tik in Safari op het deel-icoon en kies <b>Zet op beginscherm</b>.</span></p>';
+    else box.innerHTML = '';
+  }
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); prompt = e; draw(); });
+  window.addEventListener('appinstalled', function () { prompt = null; box.innerHTML = ''; });
+  draw();
+})();
 </script>
 </body>
 </html>
