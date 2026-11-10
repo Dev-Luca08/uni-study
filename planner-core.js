@@ -255,13 +255,18 @@ function applyProgress(ch, type, units, day = todayKey()) {
 
 /* ---------- speed: minutes per page ---------- */
 function measured(cid) {
+  // your real speed: minutes on the timer for a task, against the pages you ticked off for it
   return memo('ms:' + cid, () => {
-    let m = 0, u = 0, n = 0;
+    const by = {};
     for (const l of Object.values(state.logs)) {
-      if (!alive(l) || l.course !== cid || l.type !== 'study' || l.est || !(l.min > 0) || !(l.units > 0) || l.unit === 'dia') continue;
-      m += l.min; u += l.units; n++;
+      if (!alive(l) || l.course !== cid || !l.key) continue;
+      const o = by[l.key] || (by[l.key] = { m: 0, u: 0 });
+      if (l.type === 'timer') o.m += l.min || 0;
+      else if (l.type === 'study' && l.unit !== 'dia') o.u += l.units || 0;
     }
-    return n >= 3 && u >= 10 ? { mpu: m / u, n, units: u } : null;
+    let m = 0, u = 0, n = 0;
+    for (const o of Object.values(by)) if (o.m >= 5 && o.u > 0) { m += o.m; u += o.u; n++; }
+    return n >= 3 && u >= 10 ? { mpu: clamp(m / u, .5, 60), n, units: u } : null;
   });
 }
 function mpu(c, ch) {

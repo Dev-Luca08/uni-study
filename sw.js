@@ -1,6 +1,6 @@
-/* Uni Flashcards — offline support (made by Luca Cicarelli) */
-const VERSION = 'luca-flashcards-v2';
-const LOCAL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
+/* Uni Study — offline support (made by Luca Cicarelli) */
+const VERSION = 'uni-study-v3';
+const LOCAL = ['./', './index.html', './planner.html', './planner.css', './theme.js', './planner-core.js', './planner-plan.js', './planner-ui.js', './planner-extra.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 const REMOTE = [
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
@@ -56,7 +56,7 @@ self.addEventListener('fetch', event => {
     // Show the saved version at once, fetch a fresh one in the background
     event.respondWith((async () => {
       const cache = await caches.open(VERSION);
-      const key = req.mode === 'navigate' ? './index.html' : req;
+      const key = req.mode === 'navigate' ? (/planner\.html$/.test(url.pathname) ? './planner.html' : './index.html') : req;
       const hit = await cache.match(key, { ignoreSearch: req.mode === 'navigate' });
       const fresh = fetch(req).then(res => { if (res.ok) cache.put(key, res.clone()); return res; }).catch(() => null);
       if (hit) { event.waitUntil(fresh); return hit; }

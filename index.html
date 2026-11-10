@@ -10,14 +10,14 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Uni Flashcards">
+<meta name="apple-mobile-web-app-title" content="Uni Study">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
 :root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; font: 14px system-ui, sans-serif; }
 img { max-width: 100%; }
 [hidden] { display: none !important; }
-</style><title>Uni Flashcards</title>
+</style><title>Uni Study — Flashcards</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
@@ -391,7 +391,13 @@ textarea.small-ta { min-height: 90px; font-family: var(--font-body); font-size: 
   .flash.anim { animation: none; }
   .progress span { transition: none; }
 }
+.app-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; }
+.app-switch > * { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; border-radius: 9px; font-weight: 700; font-size: .95rem; text-decoration: none; color: var(--muted); }
+.app-switch .on { background: var(--accent); color: var(--accent-ink); }
+.app-switch a:hover { background: var(--surface-2); color: var(--ink); }
 </style>
+<script>window.UNI_FLASH_PAGE = true;</script>
+<script src="theme.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -1360,9 +1366,10 @@ function renderHome() {
   } else main = empty;
 
   return `<header class="home-head">
-      <div class="brand">${brandSvg}<div><h1>Uni Flashcards</h1><p>${Cloud.user && Cloud.me ? '@' + esc(Cloud.me.username) : 'Je sets en mappen'}</p></div></div>
+      <div class="brand">${brandSvg}<div><h1>Uni Study</h1><p>Flashcards · ${Cloud.user && Cloud.me ? '@' + esc(Cloud.me.username) : 'je sets en mappen'}</p></div></div>
       ${topIcons()}
     </header>
+    <nav class="app-switch" aria-label="Kies onderdeel"><a href="planner.html">📅 Planning</a><span class="on" aria-current="page">🗂️ Flashcards</span></nav>
     ${loginBanner()}
     <div class="home-actions">
       <button class="btn primary new-btn" data-act="new">+ Nieuwe set</button>
@@ -3067,6 +3074,26 @@ document.addEventListener('visibilitychange', async () => {
   if (view.name === 'home' && !view.newFolder && !view.rename && await Store.refresh()) render();
 });
 
+/* ---------- links from Planning: #study=<set>, #new, #auth ---------- */
+let pendingStudy = null;
+function handleAppHash(final) {
+  const h = location.hash, clear = () => history.replaceState(null, '', location.pathname + location.search);
+  const m = h.match(/^#study=(.+)$/);
+  if (m || pendingStudy) {
+    const id = m ? decodeURIComponent(m[1]) : pendingStudy;
+    if (m) clear();
+    if (getDeck(id)) { pendingStudy = null; startStudy(id); return true; }
+    pendingStudy = final ? null : id;
+    if (final) toast('Deze set staat niet op dit toestel. Log in om je sets te zien.');
+    return false;
+  }
+  if (h === '#new') { clear(); startWizard(null, ''); return true; }
+  if (h === '#auth') { clear(); if (ONLINE && Cloud.sb && !Cloud.user) { view = { name: 'auth', mode: 'login' }; render(); return true; } if (!final) { pendingAuth = true; } return false; }
+  if (pendingAuth && final) { pendingAuth = false; if (ONLINE && Cloud.sb && !Cloud.user) { view = { name: 'auth', mode: 'login' }; render(); return true; } }
+  return false;
+}
+let pendingAuth = false;
+
 /* ---------- boot ---------- */
 Store.tombs = Store.loadTombs();
 Store.loadFolders();
@@ -3074,12 +3101,14 @@ decks = Store.loadLocal().filter(d => d && d.id && Array.isArray(d.cards) && !St
 Stats.load();
 if (ONLINE && lsGet(LS_OWNER, null)) Cloud.loadSharedLocal();
 render();
+handleAppHash(false);
 if (window.claude) {
   Store.initCloud().then(changed => { if (view.name === 'home' && !view.newFolder && !view.rename) render(); else updateSyncChip(); });
 } else {
   Cloud.init().then(() => {
     lastPull = Date.now();
     if (handleHash()) return;
+    if (handleAppHash(true)) return;
     if (view.name === 'home' && !view.newFolder && !view.rename) render(); else updateBadges();
   });
 }
@@ -3098,7 +3127,7 @@ if (!window.claude) {
   }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; if (view.name === 'home') render(); });
-  window.addEventListener('appinstalled', () => { installPrompt = null; toast('Uni Flashcards is geïnstalleerd'); if (view.name === 'home') render(); });
+  window.addEventListener('appinstalled', () => { installPrompt = null; toast('Uni Study is geïnstalleerd'); if (view.name === 'home') render(); });
 }
 </script>
 </body>
