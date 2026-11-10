@@ -178,7 +178,7 @@ function chaptersOf(cid) {
 function newCourse(p = {}) {
   const n = listCourses(true).length;
   return put('courses', Object.assign({
-    id: uid(), name: 'Nieuw vak', emoji: '📘', color: COLORS[n % COLORS.length], prof: '', credits: '', semester: '',
+    id: uid(), name: 'Nieuw vak', emoji: 'i:book', color: COLORS[n % COLORS.length], prof: '', credits: '', semester: '',
     difficulty: 3, priority: 'normaal', exam: '', examTime: '', examType: '', examPlace: '',
     start: '', buffer: null, mode: 'auto', minPages: 0, minMinutes: 0, minPerPage: null, minPerSlide: null, prepMinPerPage: null,
     reviewOffsets: null, useMeasured: true, decks: [], notes: '', archived: false, grade: null, gradeMax: 20, skips: [],

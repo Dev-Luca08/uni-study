@@ -13,7 +13,7 @@ const ACT = {}, CHANGE = {}, FORMS = {}, INPUT = {}, SHEETS = {};
 
 const cc = c => `--cc:${esc((c && c.color) || 'var(--accent)')}`;
 const EMOJIS = ['📘', '📗', '📕', '📙', '📓', '📒', '📐', '➗', '🧮', '📊', '📈', '💶', '💰', '🏦', '⚖️', '📜', '🏛️', '🧠', '👥', '🧬', '🧪', '⚛️', '🔬', '🩺', '🫀', '💊', '🏥', '🌍', '🗺️', '💻', '🖥️', '🤖', '📝', '✍️', '🗣️', '💬', '📣', '🇬🇧', '🇫🇷', '🇩🇪', '🇪🇸', '🇳🇱', '🎨', '🎭', '🎵', '📷', '🏗️', '⚙️', '🔧', '🚀', '🌱', '🐾', '🧘', '⚽', '🛒', '🤔', '💡', '⭐', '🔥', '💜', '💗', '🌸', '🍀', '☕', '🎓', '🦄', '🌈', '🍓'];
-const SUGGEST = [['Wiskunde', '➗'], ['Statistiek', '📊'], ['Economie', '💶'], ['Boekhouden', '📒'], ['Recht', '⚖️'], ['Psychologie', '🧠'], ['Sociologie', '👥'], ['Biologie', '🧬'], ['Chemie', '🧪'], ['Fysica', '⚛️'], ['Informatica', '💻'], ['Geschiedenis', '🏛️'], ['Filosofie', '🤔'], ['Engels', '🇬🇧'], ['Frans', '🇫🇷'], ['Nederlands', '📝'], ['Marketing', '📣'], ['Communicatie', '💬'], ['Anatomie', '🫀'], ['Aardrijkskunde', '🌍']];
+const SUGGEST = [['Wiskunde', 'i:math'], ['Statistiek', 'i:stats'], ['Economie', 'i:econ'], ['Boekhouden', 'i:clipboard'], ['Recht', 'i:scales'], ['Psychologie', 'i:known'], ['Sociologie', 'i:friends'], ['Biologie', 'i:leaf'], ['Chemie', 'i:flask'], ['Fysica', 'i:atom'], ['Informatica', 'i:laptop'], ['Geschiedenis', 'i:column'], ['Filosofie', 'i:bulb'], ['Engels', 'i:lang'], ['Frans', 'i:lang'], ['Nederlands', 'i:lang'], ['Marketing', 'i:mega'], ['Communicatie', 'i:chat'], ['Anatomie', 'i:heart'], ['Aardrijkskunde', 'i:globe']];
 const EXAM_TYPES = ['', 'Schriftelijk', 'Mondeling', 'Schriftelijk + mondeling', 'Open boek', 'Online / pc-examen', 'Meerkeuze', 'Project / paper', 'Permanente evaluatie'];
 const SEMESTERS = ['', '1e semester', '2e semester', 'Jaarvak', 'Tweede zit'];
 const KINDS = { theorie: 'Theorie', oefeningen: 'Oefeningen', beide: 'Theorie + oefeningen' };
@@ -23,7 +23,7 @@ function examTxt(c) {
   if (!validDay(c.exam)) return 'geen examendatum';
   const n = diffDays(todayKey(), c.exam);
   if (n < 0) return `examen was ${fmtDay(c.exam, 'dm')}`;
-  return `examen ${fmtDay(c.exam, 'dm')} · ${n === 0 ? 'vandaag! 🍀' : n === 1 ? 'morgen' : 'over ' + n + ' d'}`;
+  return `examen ${fmtDay(c.exam, 'dm')} · ${n === 0 ? 'vandaag!' : n === 1 ? 'morgen' : 'over ' + n + ' d'}`;
 }
 function ring(pct) {
   const r = 36, C = 2 * Math.PI * r;
@@ -124,7 +124,7 @@ function renderToday() {
   const headline = !items.length ? (capOf(T) === 0 ? 'Vrije dag 🌴' : 'Niets gepland vandaag') : allDone ? 'Alles gedaan voor vandaag! 🎉' : `Nog ${fmtMin(total - done)} te gaan`;
   const L = cfg().layout;
   return `
-    <section class="hello"><h1>${greeting()}${name ? ', ' + esc(name) : ''} ${allDone ? '🥳' : ['☀️', '📚', '✨', '💪', '🌷', '🚀', '🍀'][wday(T)]}</h1><p>${fmtDay(T, 'long')}</p></section>
+    <section class="hello"><h1>${greeting()}${name ? ', ' + esc(name) : ''} ${allDone ? '' : ['☀️', '📚', '✨', '', '🌷', '🚀', ''][wday(T)]}</h1><p>${fmtDay(T, 'long')}</p></section>
     <section class="card summary">${ring(pct)}<div class="summary-text"><strong>${headline}</strong>
       <div class="facts">${nCourses ? `<span class="fact">📚 ${plural(nCourses, 'vak', 'vakken')}</span>` : ''}${total ? `<span class="fact">⏱ ${fmtMin(total)}</span>` : ''}${units ? `<span class="fact">📄 ${fmtNum(units)} p.</span>` : ''}<span class="fact">${icon('flame')} ${plural(streak, 'dag', 'dagen')}</span></div></div></section>
     ${examChips()}
@@ -143,14 +143,14 @@ function renderWelcome() {
   const added = new Set(listCourses(true).map(c => norm(c.name)));
   const look = UniLook.get();
   return `<section class="card welcome section">
-      <div class="wave">👋</div>
+      <div class="wave"></div>
       <h1>Welkom bij Uni Study</h1>
       <p class="muted">Je slimme studieplanner: voeg je vakken en hoofdstukken toe, kies wanneer je ze moet kennen, en ik verdeel alles eerlijk over je dagen — met samenvattingen, herhalingen en je flashcards erbij.</p>
       <label class="fld"><span>Hoe mag ik je noemen?</span><input class="field" name="name" value="${esc(cfg().name)}" placeholder="bv. Sarah" data-change="set-name" autocomplete="given-name"></label>
       <div class="stack"><span class="lbl">Kies je look</span><div class="themes">${['klassiek', 'blossom', 'pastel', 'oceaan', 'bos', 'middernacht'].map(k => themeOpt(k, look)).join('')}</div>
         <button class="link-btn small" data-act="look" style="justify-self:start">Meer thema's, lettertypes en achtergronden →</button></div>
       <div class="stack"><span class="lbl">Voeg je vakken toe</span>
-        <div class="suggest">${SUGGEST.map(([n, e]) => `<button class="sug${added.has(norm(n)) ? ' added' : ''}" data-act="sug-add" data-name="${esc(n)}" data-emoji="${e}">${e} ${esc(n)}${added.has(norm(n)) ? ' ✓' : ''}</button>`).join('')}</div>
+        <div class="suggest">${SUGGEST.map(([n, e]) => `<button class="sug${added.has(norm(n)) ? ' added' : ''}" data-act="sug-add" data-name="${esc(n)}" data-emoji="${e}">${emoHtml(e)} ${esc(n)}${added.has(norm(n)) ? ' ✓' : ''}</button>`).join('')}</div>
         <button class="btn primary" data-act="course-new">+ Eigen vak toevoegen</button></div>
       <div class="how">
         <div><b>1. Vakken 📚</b>Met examendatum, prof en kleur.</div>
@@ -167,7 +167,7 @@ function examChips() {
   if (!cs.length) return '';
   return `<div class="chips-scroll section" role="list" aria-label="Examens">${cs.map(c => {
     const n = diffDays(T, c.exam);
-    return `<button class="exam-chip${n <= 7 ? ' soon' : ''}" style="${cc(c)}" data-act="open-course" data-id="${c.id}" role="listitem"><span class="em">${emo(c)}</span><span><b>${esc(c.name)}</b><small>${n === 0 ? 'vandaag! 🍀' : n === 1 ? 'morgen' : 'over ' + n + ' dagen'} · ${fmtDay(c.exam, 'dm')}${c.examTime ? ' ' + esc(c.examTime) : ''}</small></span></button>`;
+    return `<button class="exam-chip${n <= 7 ? ' soon' : ''}" style="${cc(c)}" data-act="open-course" data-id="${c.id}" role="listitem"><span class="em">${emo(c)}</span><span><b>${esc(c.name)}</b><small>${n === 0 ? 'vandaag!' : n === 1 ? 'morgen' : 'over ' + n + ' dagen'} · ${fmtDay(c.exam, 'dm')}${c.examTime ? ' ' + esc(c.examTime) : ''}</small></span></button>`;
   }).join('')}</div>`;
 }
 
@@ -175,7 +175,7 @@ function todayAlerts() {
   const T = todayKey(), P = buildPlan(), a = [];
   if (!Sync.user && Sync.ready && Sync.sb && !lsGet('unistudy.hideLogin.v1', false))
     a.push(['', '☁️', 'Log in om je planning op al je toestellen te hebben — met hetzelfde account als Flashcards.', `<a class="btn xs primary" href="flashcards.html#auth">Inloggen</a> <button class="btn xs ghost" data-act="hide-login">Later</button>`]);
-  if (capOf(T) === 0) a.push(['good', '🌴', isOff(T) ? 'Vandaag is een vrije dag. Rust hoort er ook bij! 😌' : 'Vandaag heb je geen studietijd ingesteld.', isOff(T) ? `<button class="btn xs" data-act="toggle-off" data-day="${T}">Toch studeren vandaag</button>` : `<button class="btn xs" data-act="settings">Beschikbaarheid aanpassen</button>`]);
+  if (capOf(T) === 0) a.push(['good', '🌴', isOff(T) ? 'Vandaag is een vrije dag. Rust hoort er ook bij!' : 'Vandaag heb je geen studietijd ingesteld.', isOff(T) ? `<button class="btn xs" data-act="toggle-off" data-day="${T}">Toch studeren vandaag</button>` : `<button class="btn xs" data-act="settings">Beschikbaarheid aanpassen</button>`]);
   for (const b of backlog()) a.push(['warn', '↪️', `Gisteren bleef er ±${fmtMin(b.left)} ${emo(b.c)} ${esc(b.c.name)} liggen. Geen paniek: ik heb het verdeeld over de komende dagen.`]);
   for (const c of listCourses()) {
     const r = P.info[c.id] || {}, chs = chaptersOf(c.id), nm = `${emo(c)} ${esc(c.name)}`;
@@ -451,7 +451,7 @@ function renderCourses() {
   const sugg = SUGGEST.filter(([n]) => !added.has(norm(n)));
   const graded = arch.filter(c => c.grade != null);
   return `<div class="section-head"><h1>Vakken</h1><button class="btn primary sm" data-act="course-new">+ Vak</button></div>
-    ${cs.length < 12 && sugg.length ? `<section class="card stack"><p class="kicker">Snel toevoegen</p><div class="suggest">${sugg.slice(0, 14).map(([n, e]) => `<button class="sug" data-act="sug-add" data-name="${esc(n)}" data-emoji="${e}">${e} ${esc(n)}</button>`).join('')}</div><p class="help" style="margin:0">Tik om toe te voegen. Naam, emoji, kleur, prof en examen pas je daarna aan.</p></section>` : ''}
+    ${cs.length < 12 && sugg.length ? `<section class="card stack"><p class="kicker">Snel toevoegen</p><div class="suggest">${sugg.slice(0, 14).map(([n, e]) => `<button class="sug" data-act="sug-add" data-name="${esc(n)}" data-emoji="${e}">${emoHtml(e)} ${esc(n)}</button>`).join('')}</div><p class="help" style="margin:0">Tik om toe te voegen. Naam, emoji, kleur, prof en examen pas je daarna aan.</p></section>` : ''}
     <div class="courses section">${cs.map(courseCard).join('') || `<div class="card empty"><div class="big">📚</div><p class="muted">Nog geen vakken. Voeg er hierboven een toe!</p></div>`}</div>
     ${arch.length ? `<details class="more section"><summary>Archief (${arch.length})${graded.length ? ' · gemiddelde ' + avgGrade(graded) : ''}</summary><div class="courses section">${arch.map(courseCard).join('')}</div></details>` : ''}`;
 }
@@ -565,7 +565,7 @@ function deckAdvice(c) {
   const exam = validDay(c.exam) && c.exam >= T ? c.exam : '';
   const left = fs.total - fs.kn;
   if (fs.pct >= 95) lines.push(['🏆', `Je kent ${fs.pct}% van je kaarten — top! Blijf dagelijks even herhalen, dan zit het er vast in.`]);
-  else if (fs.pct >= 70) lines.push(['💪', `Al ${fs.pct}% gekend, nog ${plural(left, 'kaart', 'kaarten')} te gaan. Bijna!`]);
+  else if (fs.pct >= 70) lines.push(['', `Al ${fs.pct}% gekend, nog ${plural(left, 'kaart', 'kaarten')} te gaan. Bijna!`]);
   else if (fs.pct >= 30) lines.push(['📈', `${fs.pct}% gekend — goed op weg! Nog ${plural(left, 'kaart', 'kaarten')}.`]);
   else lines.push(['🌱', `${fs.kn} van ${fs.total} kaarten gekend. Elke dag een beetje doet wonderen.`]);
   if (fs.due) lines.push(['🔁', `Vandaag ${plural(fs.due, 'kaart', 'kaarten')} om te herhalen.`]);
@@ -582,7 +582,7 @@ function deckAdvice(c) {
     if (k != null) { has = true; now += Flash.stats(d).kn; then += k; }
   }
   if (has && now > then) lines.push(['🚀', `+${now - then} kaarten gekend sinds vorige week. Lekker bezig!`]);
-  else if (has && now <= then && diffDays(oldest, T) >= 6 && left > 0) lines.push(['😉', 'Deze week geen nieuwe kaarten bijgeleerd — even inhalen?']);
+  else if (has && now <= then && diffDays(oldest, T) >= 6 && left > 0) lines.push(['', 'Deze week geen nieuwe kaarten bijgeleerd — even inhalen?']);
   return `<div class="advice">${lines.map(([i, t]) => `<p><span aria-hidden="true">${i}</span><span>${t}</span></p>`).join('')}</div>`;
 }
 function coursePlanForm(c) {
@@ -683,12 +683,12 @@ SHEETS.item = () => {
 
 SHEETS.course = () => {
   const c = sheet.id ? getCourse(sheet.id) : null;
-  const d = sheet.draft || c || { name: '', emoji: sheet.emoji || '📘', color: COLORS[listCourses(true).length % COLORS.length], difficulty: 3, priority: 'normaal' };
+  const d = sheet.draft || c || { name: '', emoji: sheet.emoji || 'i:book', color: COLORS[listCourses(true).length % COLORS.length], difficulty: 3, priority: 'normaal' };
   return sheetHead(c ? 'Vak bewerken' : 'Nieuw vak') + `
     <form class="form" data-form="course">
       <div class="row" style="gap:12px"><span class="cc-emoji" id="emoji-prev" style="--cc:${esc(d.color)};width:58px;height:58px;font-size:2rem">${emo(d)}</span>
         <label class="fld grow"><span>Naam van het vak</span><input class="field" name="name" value="${esc(d.name)}" required maxlength="60" placeholder="bv. Wiskunde 1" autofocus></label></div>
-      <div class="fld"><span class="lbl">Icoon of emoji</span><div class="emoji-grid" style="max-height:none">${UniIcon.list.map(n => `<button type="button" data-act="pick-emoji" data-v="i:${n}" aria-pressed="${d.emoji === 'i:' + n}" aria-label="${UniIcon.label(n)}" title="${UniIcon.label(n)}">${icon(n)}</button>`).join('')}</div><div class="emoji-grid">${EMOJIS.map(e => `<button type="button" data-act="pick-emoji" data-v="${e}" aria-pressed="${e === d.emoji}">${e}</button>`).join('')}</div>
+      <div class="fld"><span class="lbl">Icoon of emoji</span><div class="emoji-grid" data-icons style="max-height:150px">${UniIcon.list.map(n => `<button type="button" data-act="pick-emoji" data-v="i:${n}" aria-pressed="${d.emoji === 'i:' + n}" aria-label="${UniIcon.label(n)}" title="${UniIcon.label(n)}">${icon(n)}</button>`).join('')}</div><div class="emoji-grid">${EMOJIS.map(e => `<button type="button" data-act="pick-emoji" data-v="${e}" aria-pressed="${e === d.emoji}">${e}</button>`).join('')}</div>
         <label class="row small muted">Of typ je eigen emoji: <input class="field" value="${/^i:/.test(d.emoji) ? '' : esc(d.emoji)}" maxlength="8" style="width:80px" data-input="emoji-live" aria-label="Eigen emoji"><input type="hidden" name="emoji" value="${esc(d.emoji)}"></label></div>
       <div class="fld"><span class="lbl">Kleur</span>${swRow('color', d.color)}</div>
       <div class="fgrid">
@@ -905,7 +905,7 @@ Object.assign(ACT, {
   'sug-add'(el) {
     const name = el.dataset.name, e = el.dataset.emoji;
     if (listCourses(true).some(c => norm(c.name) === norm(name))) { toast(`${name} staat er al in.`); return; }
-    const c = newCourse({ name, emoji: e }); commit(); render(); toast(`${e} ${name} toegevoegd! Tik erop om examen en hoofdstukken in te vullen.`);
+    const c = newCourse({ name, emoji: e }); commit(); render(); toast(`${name} toegevoegd! Tik erop om examen en hoofdstukken in te vullen.`);
     void c;
   },
   'course-new'() { openSheet('course', {}); },
@@ -998,7 +998,7 @@ function keepChapterForm(then) {
 
 /* ---------- live inputs ---------- */
 Object.assign(INPUT, {
-  'emoji-live'(el) { const v = el.value.trim(); if (!v) return; el.closest('form').elements.emoji.value = v; const p = document.getElementById('emoji-prev'); if (p) p.textContent = v; },
+  'emoji-live'(el) { const v = el.value.trim(); if (!v) return; el.closest('form').elements.emoji.value = v; const p = document.getElementById('emoji-prev'); if (p) p.innerHTML = emoHtml(v); },
   'color-live'(el) {
     const p = document.getElementById('emoji-prev'); if (p && el.name === 'color') p.style.setProperty('--cc', el.value);
     el.closest('.swatches').querySelectorAll('[data-act="pick-color"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v.toLowerCase() === el.value.toLowerCase()));
@@ -1092,7 +1092,7 @@ Object.assign(FORMS, {
     const v = harvest(f);
     const name = (v.name || '').trim().slice(0, 60); if (!name) return;
     const data = {
-      name, emoji: (v.emoji || '📘').trim().slice(0, 12) || '📘', color: /^#[0-9a-f]{6}$/i.test(v.color) ? v.color : COLORS[0],
+      name, emoji: (v.emoji || 'i:book').trim().slice(0, 12) || '📘', color: /^#[0-9a-f]{6}$/i.test(v.color) ? v.color : COLORS[0],
       prof: (v.prof || '').trim().slice(0, 60), credits: v.credits ? String(clamp(num(v.credits), 0, 60)) : '', semester: v.semester || '',
       priority: v.priority || 'normaal', difficulty: clamp(int(v.difficulty, 3), 1, 5),
       exam: validDay(v.exam) ? v.exam : '', examTime: v.examTime || '', examType: v.examType || '', examPlace: (v.examPlace || '').trim().slice(0, 80)

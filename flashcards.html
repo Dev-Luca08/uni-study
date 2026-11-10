@@ -2771,7 +2771,7 @@ function renderChat() {
       <button class="btn ghost sm" data-act="share-pick">Sluiten</button></div>` : '';
   return head + `<div class="chat">
     ${picker}
-    <div class="chat-msgs" id="chat-msgs">${view.data.msgs.map(m => Chat.bubble(m, view.data.inv)).join('') || '<p class="muted center small">Zeg hallo 👋</p>'}</div>
+    <div class="chat-msgs" id="chat-msgs">${view.data.msgs.map(m => Chat.bubble(m, view.data.inv)).join('') || '<p class="muted center small">Zeg hallo</p>'}</div>
     ${friend ? `<form class="composer" data-form="chat"><input class="field" id="chat-input" autocomplete="off" placeholder="Bericht…" value="${esc(view.draft || '')}" maxlength="2000"><button class="btn primary" type="submit">Stuur</button></form>`
       : '<p class="muted small center">Jullie zijn (nog) geen vrienden, dus je kunt geen berichten sturen.</p>'}
   </div>`;
@@ -2932,7 +2932,7 @@ Object.assign(ACT, {
   'share-pick'() { view.picking = !view.picking; render(); },
   async 'add-friend'(el) {
     const { data, error } = await Cloud.sb.rpc('send_friend_request', { p_target: el.dataset.name });
-    const msg = { sent: 'Vriendschapsverzoek verstuurd', accepted: 'Jullie zijn nu vrienden 🎉', already_friends: 'Jullie zijn al vrienden', already_sent: 'Je stuurde al een verzoek', not_found: 'Deze gebruiker bestaat niet', self: 'Dat ben jij 🙂' };
+    const msg = { sent: 'Vriendschapsverzoek verstuurd', accepted: 'Jullie zijn nu vrienden 🎉', already_friends: 'Jullie zijn al vrienden', already_sent: 'Je stuurde al een verzoek', not_found: 'Deze gebruiker bestaat niet', self: 'Dat ben jij' };
     toast(error ? 'Lukte niet. Probeer opnieuw.' : (msg[data] || 'Klaar'));
     await Cloud.refreshSocial(); softRender();
   },
@@ -2949,7 +2949,7 @@ Object.assign(ACT, {
   },
   async remind(el) {
     const { data, error } = await Cloud.sb.rpc('send_reminder', { p_to: el.dataset.uid, p_today: dayStr() });
-    const msg = { sent: 'Herinnering verstuurd ⏰', already_studied: 'Je vriend heeft vandaag al gestudeerd 💪', already_sent: 'Je stuurde de laatste 12 uur al een herinnering', not_friends: 'Dit kan alleen bij vrienden' };
+    const msg = { sent: 'Herinnering verstuurd ⏰', already_studied: 'Je vriend heeft vandaag al gestudeerd', already_sent: 'Je stuurde de laatste 12 uur al een herinnering', not_friends: 'Dit kan alleen bij vrienden' };
     toast(error ? 'Lukte niet. Probeer opnieuw.' : (msg[data] || 'Klaar'));
   },
   'copy-friendlink'() { copyText(appUrl() + '#friend=' + Cloud.me.username); },

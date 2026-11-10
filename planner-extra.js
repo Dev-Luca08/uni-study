@@ -83,9 +83,9 @@ const Timer = {
     this.save();
     if (!stale) {
       beep(wasWork ? 'done' : 'break');
-      const msg = wasWork ? `Goed gewerkt! ${m ? fmtMin(m) + ' opgeslagen. ' : ''}${s.mode === 'pomo' ? 'Tijd voor pauze ☕' : ''}` : 'Pauze voorbij — terug aan de slag! 💪';
+      const msg = wasWork ? `Goed gewerkt! ${m ? fmtMin(m) + ' opgeslagen. ' : ''}${s.mode === 'pomo' ? 'Tijd voor pauze ☕' : ''}` : 'Pauze voorbij — terug aan de slag!';
       toast(msg, 5000);
-      try { if (document.hidden && window.Notification && Notification.permission === 'granted') new Notification('Uni Study', { body: msg, icon: 'icon-192.png' }); } catch (e) { /* ignore */ }
+      try { if (document.hidden && window.Notification && Notification.permission === 'granted') new Notification('Uni Study', { body: noEmoji(msg), icon: 'icon-192.png' }); } catch (e) { /* ignore */ }
       if (wasWork) confetti([], 30);
     }
     if (document.getElementById('focus') && !this.s.running) closeFocus();
@@ -141,7 +141,7 @@ function renderTimer() {
       <p class="help">De tijd die je met de timer studeert telt mee in je statistieken${c ? ' en in je tempo voor ' + esc(c.name) : ''}.</p>
     </section>
     <section class="card section stack"><h2>Vandaag</h2>
-      ${sess.length ? `<p><b>${fmtMin(sum(sess, l => l.min))}</b> met de timer · ${plural(sess.length, 'sessie', 'sessies')}</p><div class="sessions">${sess.slice(0, 12).map(l => { const x = getCourse(l.course); return `<div class="sess" style="${cc(x)}"><i></i><span class="grow">${x ? (emo(x) + ' ' + esc(x.name)) : 'Vrij studeren'}</span><span class="muted num">${new Date(l.at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}</span><b class="num">${fmtMin(l.min)}</b><button class="icon-btn sm" data-act="sess-del" data-id="${l.id}" aria-label="Verwijder sessie">✕</button></div>`; }).join('')}</div>` : '<p class="muted small">Nog geen sessies vandaag. Start de timer en ga ervoor! 💪</p>'}
+      ${sess.length ? `<p><b>${fmtMin(sum(sess, l => l.min))}</b> met de timer · ${plural(sess.length, 'sessie', 'sessies')}</p><div class="sessions">${sess.slice(0, 12).map(l => { const x = getCourse(l.course); return `<div class="sess" style="${cc(x)}"><i></i><span class="grow">${x ? (emo(x) + ' ' + esc(x.name)) : 'Vrij studeren'}</span><span class="muted num">${new Date(l.at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}</span><b class="num">${fmtMin(l.min)}</b><button class="icon-btn sm" data-act="sess-del" data-id="${l.id}" aria-label="Verwijder sessie">✕</button></div>`; }).join('')}</div>` : '<p class="muted small">Nog geen sessies vandaag. Start de timer en ga ervoor!</p>'}
     </section>`;
 }
 let wakeLock = null;
@@ -215,7 +215,7 @@ function badgesList() {
   const cards = sum(cs, c => Flash.courseStats(c).kn);
   return [
     ['🌱', 'Eerste stap', 'Je eerste taak gedaan', t.days >= 1], ['🔥', '3 op een rij', '3 dagen na elkaar', st >= 3], ['⚡', 'Week-held', '7 dagen na elkaar', st >= 7],
-    ['🏅', 'Onstopbaar', '30 dagen na elkaar', st >= 30], ['⏰', '10 uur', '10 uur gestudeerd', t.min >= 600], ['💎', '50 uur', '50 uur gestudeerd', t.min >= 3000],
+    ['🏅', 'Onstopbaar', '30 dagen na elkaar', st >= 30], ['🕒', '10 uur', '10 uur gestudeerd', t.min >= 600], ['💎', '50 uur', '50 uur gestudeerd', t.min >= 3000],
     ['👑', '100 uur', '100 uur gestudeerd', t.min >= 6000], ['📄', '100 pagina\'s', '100 pagina\'s gedaan', t.units >= 100], ['📚', '1000 pagina\'s', '1000 pagina\'s gedaan', t.units >= 1000],
     ['🧠', 'Gekend!', 'Eerste hoofdstuk gekend', known >= 1], ['🎯', '10 hoofdstukken', '10 hoofdstukken gekend', known >= 10], ['🔁', 'Herhaler', '10 herhalingen gedaan', t.reviews >= 10],
     ['🍅', 'Pomodoro-pro', '25 timer-sessies', t.timer >= 25], ['🗂️', 'Kaartenkoning', '200 flashcards gekend', cards >= 200], ['🌅', 'Vroege vogel', 'Gestudeerd vóór 8u', t.early],
@@ -280,7 +280,7 @@ function friendsBoard() {
   const me = { id: 'me', min: rangeTotals(addDays(todayKey(), -6), todayKey()).min, me: true };
   const all = [...Social.week(), me].sort((a, b) => b.min - a.min);
   if (all.length < 2) return `<section class="card section stack"><h2>👥 Vrienden</h2><p class="muted small">Voeg vrienden toe in Flashcards, dan zie je hier wie er deze week het meest studeerde.</p><a class="btn sm" href="flashcards.html" style="justify-self:start">Naar Flashcards</a></section>`;
-  return `<section class="card section stack"><h2>👥 Deze week met vrienden</h2><div class="friends">${all.slice(0, 10).map((f, i) => { const n = f.me ? (Sync.me ? Sync.me.username : 'ik') : (Social.names[f.id] || 'vriend'); return `<div class="friend"><b class="num" style="width:22px">${['🥇', '🥈', '🥉'][i] || i + 1}</b>${avatarHtml(n)}<span class="grow">${f.me ? '<b>Jij</b>' : '@' + esc(n)}</span><b class="num">${fmtMin(f.min)}</b></div>`; }).join('')}</div><p class="help">Vrienden zien alleen hoeveel minuten en pagina's je per dag studeerde, niet wát.</p></section>`;
+  return `<section class="card section stack"><h2>👥 Deze week met vrienden</h2><div class="friends">${all.slice(0, 10).map((f, i) => { const n = f.me ? (Sync.me ? Sync.me.username : 'ik') : (Social.names[f.id] || 'vriend'); return `<div class="friend"><b class="num" style="width:22px">${i + 1}</b>${avatarHtml(n)}<span class="grow">${f.me ? '<b>Jij</b>' : '@' + esc(n)}</span><b class="num">${fmtMin(f.min)}</b></div>`; }).join('')}</div><p class="help">Vrienden zien alleen hoeveel minuten en pagina's je per dag studeerde, niet wát.</p></section>`;
 }
 
 /* ---------- calendar export ---------- */
@@ -326,6 +326,9 @@ SHEETS.look = () => {
     <div class="card flat stack"><span class="lbl">🎨 Eigen thema — kies je kleuren</span>
       <div class="fgrid keep">${[['accent', 'Accentkleur'], ['bg', 'Achtergrond'], ['surface', 'Kaartjes'], ['ink', 'Tekst']].map(([k, l]) => `<label class="row"><input type="color" class="field" name="look-${k}" value="${esc(cu[k])}" data-input="look-color"><span class="small">${l}</span></label>`).join('')}</div>
       <p class="help">Verander een kleur en je eigen thema wordt meteen toegepast.</p></div>
+    <div class="stack"><span class="lbl">Kleur van de icons</span><div class="chips-pick">${[['', 'Zoals de tekst'], ['accent', 'Accentkleur'], ['eigen', 'Eigen kleur']].map(([k, l]) => `<button data-act="look-icon" data-v="${k}" aria-pressed="${(/^#/.test(look.iconColor || '') ? 'eigen' : (look.iconColor || '')) === k}">${l}</button>`).join('')}
+      <input type="color" class="field" name="look-icon" value="${/^#/.test(look.iconColor || '') ? esc(look.iconColor) : '#C92E68'}" data-input="look-icon" aria-label="Eigen kleur voor de icons"></div>
+      <p class="help">Icons van een vak nemen altijd de kleur van dat vak.</p></div>
     <div class="stack"><span class="lbl">Lettertype</span>${pick(UniLook.FONTS, 'font', 'look-font')}</div>
     <div class="stack"><span class="lbl">Hoekjes</span>${pick(UniLook.RADII, 'radius', 'look-radius')}</div>
     <div class="stack"><span class="lbl">Ruimte</span>${pick(UniLook.DENSITY, 'density', 'look-density')}</div>
@@ -346,6 +349,8 @@ Object.assign(ACT, {
   'look-sound'(el) { cfg().sound = el.dataset.v; touchSettings(); beep('done'); redrawSheet(); },
   'look-reset'() { saveLook(Object.assign({}, UniLook.DEFAULT)); redrawSheet(); toast('Terug naar het standaard uiterlijk'); }
 });
+ACT['look-icon'] = el => { const l = UniLook.get(), v = el.dataset.v; l.iconColor = v === 'eigen' ? el.closest('.sheet').querySelector('input[name="look-icon"]').value : v; saveLook(l); redrawSheet(); };
+INPUT['look-icon'] = el => { const l = UniLook.get(); l.iconColor = el.value; UniLook.set(l); cfg().look = l; clearTimeout(INPUT.t2); INPUT.t2 = setTimeout(touchSettings, 600); el.closest('.chips-pick').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === 'eigen')); };
 INPUT['look-color'] = el => {
   const box = el.closest('.sheet'), l = UniLook.get(), cu = {};
   ['accent', 'bg', 'surface', 'ink'].forEach(k => { cu[k] = box.querySelector(`input[name="look-${k}"]`).value; });
@@ -528,7 +533,7 @@ function examLine(x, mine) {
 }
 function rosterText() {
   const ex = myExams(); if (!ex.length) return '';
-  return `📚 Mijn examenrooster${myName() ? ' (' + myName() + ')' : ''}:\n` + ex.map(x => `${emoTxt(x.e)} ${x.n} — ${fmtDay(x.d, 'long')}${x.t ? ' om ' + x.t : ''}${x.k ? ' (' + x.k + ')' : ''}${x.p ? ', ' + x.p : ''}`).join('\n') + '\n\nGemaakt met Uni Study 🎓 ' + location.origin + location.pathname.replace(/[^/]*$/, '');
+  return `Mijn examenrooster${myName() ? ' (' + myName() + ')' : ''}:\n` + ex.map(x => `${emoTxt(x.e)} ${x.n} — ${fmtDay(x.d, 'long')}${x.t ? ' om ' + x.t : ''}${x.k ? ' (' + x.k + ')' : ''}${x.p ? ', ' + x.p : ''}`).join('\n') + '\n\nGemaakt met Uni Study: ' + location.origin + location.pathname.replace(/[^/]*$/, '');
 }
 SHEETS.roster = () => {
   const mine = myExams(), T = todayKey();

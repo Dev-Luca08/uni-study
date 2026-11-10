@@ -58,7 +58,7 @@
     foto: { name: 'Eigen foto', img: null }
   };
 
-  const DEFAULT = { theme: 'klassiek', custom: null, font: 'atkinson', radius: 'normaal', density: 'normaal', bg: 'geen', flash: true };
+  const DEFAULT = { theme: 'klassiek', custom: null, font: 'atkinson', radius: 'normaal', density: 'normaal', bg: 'geen', flash: true, iconColor: '' };
   const VARS = ['bg', 'surface', 'surface-2', 'ink', 'muted', 'line', 'accent', 'accent-ink', 'accent-soft'];
 
   function read(k, def) { try { const v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } }
@@ -108,7 +108,7 @@
     const isFlash = !!(opts && opts.flash);
     // Clear what an earlier theme set
     VARS.forEach(k => root.style.removeProperty('--' + k));
-    ['--font-body', '--font-display', '--r', '--density'].forEach(k => root.style.removeProperty(k));
+    ['--font-body', '--font-display', '--r', '--density', '--ic'].forEach(k => root.style.removeProperty(k));
     if (isFlash && look.flash === false) { root.removeAttribute('data-theme'); styleEl().textContent = ''; return look; }
 
     const th = themeOf(look);
@@ -121,6 +121,8 @@
       root.style.setProperty('--font-body', `${f.body}, "Segoe UI", system-ui, sans-serif`);
       root.style.setProperty('--font-display', `${f.display}, "Segoe UI", system-ui, sans-serif`);
     }
+    if (look.iconColor === 'accent') root.style.setProperty('--ic', 'var(--accent)');
+    else if (/^#[0-9a-f]{6}$/i.test(look.iconColor || '')) root.style.setProperty('--ic', look.iconColor);
     const r = RADII[look.radius] || RADII.normaal;
     root.style.setProperty('--r', r[1] + 'px');
     root.style.setProperty('--density', String((DENSITY[look.density] || DENSITY.normaal)[1]));
