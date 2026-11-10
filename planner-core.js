@@ -413,6 +413,7 @@ const Sync = {
       });
       if (error) { days.forEach(x => this.dirtyDays.add(x)); throw error; }
     }
+    if (typeof pushExams === 'function') await pushExams();
   },
   fail(e) {
     console.warn('Uni Study sync', e);

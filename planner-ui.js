@@ -128,6 +128,7 @@ function renderToday() {
     <section class="card summary">${ring(pct)}<div class="summary-text"><strong>${headline}</strong>
       <div class="facts">${nCourses ? `<span class="fact">📚 ${plural(nCourses, 'vak', 'vakken')}</span>` : ''}${total ? `<span class="fact">⏱ ${fmtMin(total)}</span>` : ''}${units ? `<span class="fact">📄 ${fmtNum(units)} p.</span>` : ''}<span class="fact">🔥 ${plural(streak, 'dag', 'dagen')}</span></div></div></section>
     ${examChips()}
+    ${listCourses().some(c => validDay(c.exam) && c.exam >= T) ? '<button class="link-btn small" data-act="roster">🎓 Examenrooster delen met vrienden →</button>' : ''}
     ${alertsHtml(todayAlerts())}
     <section class="section">
       <div class="section-head"><h2>Vandaag te doen</h2>
@@ -363,6 +364,7 @@ function renderCal() {
   const T = todayKey(), mode = view.calMode || 'week', anchor = view.anchor || T;
   return `<div class="section-head"><h1>Kalender</h1>
       <div class="seg" role="group" aria-label="Weergave"><button class="${mode === 'week' ? 'on' : ''}" data-act="cal-mode" data-v="week">Week</button><button class="${mode === 'month' ? 'on' : ''}" data-act="cal-mode" data-v="month">Maand</button></div></div>
+    <button class="btn block soft" data-act="roster">🎓 Examenroosters — het mijne delen en dat van vrienden bekijken</button>
     ${mode === 'month' ? monthHtml(anchor) : weekHtml(anchor)}
     <div class="legend">${listCourses().map(c => `<span style="${cc(c)}"><i></i>${esc(c.emoji)} ${esc(c.name)}</span>`).join('')}</div>
     <p class="help section">Tip: tik op een taak voor opties. Eigen taken kan je op een computer naar een andere dag slepen.</p>`;

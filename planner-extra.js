@@ -390,6 +390,7 @@ SHEETS.settings = () => {
     <section class="section menu">
       <button data-act="look"><i>🎨</i><span>Personaliseren<small>Thema, kleuren, lettertype, achtergrond</small></span></button>
       ${Sync.user ? `<button data-act="logout"><i>👤</i><span>Uitloggen${Sync.me ? ' (@' + esc(Sync.me.username) + ')' : ''}<small>Ook uit Flashcards. Je planning blijft veilig in je account.</small></span></button>` : `<a href="flashcards.html#auth"><i>☁️</i><span>Inloggen of account maken<small>Je planning op al je toestellen</small></span></a>`}
+      <button data-act="roster"><i>🎓</i><span>Examenroosters<small>Deel je examens met vrienden en bekijk die van hen</small></span></button>
       <button data-act="ics-all"><i>📆</i><span>Examens naar mijn agenda<small>Google, Apple of Outlook (.ics)</small></span></button>
       <button data-act="backup"><i>💾</i><span>Back-up downloaden</span></button>
       <label class="btn ghost" style="justify-content:flex-start"><i>📂</i>&nbsp; Back-up terugzetten<input type="file" accept=".json,application/json" hidden data-change="restore"></label>
@@ -487,3 +488,68 @@ Sync.init().then(() => refreshAll(true));
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { Timer.tick(); refreshAll(false); } else if (Sync.user) Sync.push(); });
 window.addEventListener('storage', e => { if (e.key === FC.decks) { Flash.localAt = 0; Flash.ver++; if (!sheet && !isTyping()) render(); } });
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+/* =========================================================
+   Exam schedule: share it with friends, see theirs
+   ========================================================= */
+const LS_EXSIG = 'unistudy.examsig.v1';
+const Roster = { rows: [], at: 0, loading: false };
+function myExams() {
+  const T = todayKey();
+  return listCourses().filter(c => validDay(c.exam) && c.exam >= T).sort((a, b) => (a.exam + (a.examTime || '')) < (b.exam + (b.examTime || '')) ? -1 : 1)
+    .map(c => ({ n: c.name.slice(0, 60), e: c.emoji, c: c.color, d: c.exam, t: c.examTime || '', k: c.examType || '', p: (c.examPlace || '').slice(0, 80) }));
+}
+async function pushExams() {
+  if (!Sync.user || !Sync.sb) return;
+  const share = !!cfg().shareExams, list = share ? myExams() : null, sig = Sync.user.id + JSON.stringify(list);
+  if (lsGet(LS_EXSIG, '') === sig) return;
+  try {
+    const q = share ? Sync.sb.from('planner_exams').upsert({ user_id: Sync.user.id, exams: list, updated_at: new Date().toISOString() })
+      : Sync.sb.from('planner_exams').delete().eq('user_id', Sync.user.id);
+    const { error } = await q; if (!error) lsSet(LS_EXSIG, sig);
+  } catch (e) { /* try again next sync */ }
+}
+async function loadRoster(force) {
+  if (!Sync.user || !Sync.sb || Roster.loading || (!force && Date.now() - Roster.at < 60000)) return;
+  Roster.loading = true;
+  try {
+    const { data, error } = await withTimeout(Sync.sb.from('planner_exams').select('user_id,exams,updated_at').neq('user_id', Sync.user.id), 10000);
+    if (error) throw error;
+    Roster.rows = (data || []).filter(r => Array.isArray(r.exams)); Roster.at = Date.now();
+    const ids = Roster.rows.map(r => r.user_id).filter(id => !Social.names[id]);
+    if (ids.length) { const p = await Sync.sb.from('profiles').select('id,username').in('id', ids); (p.data || []).forEach(x => { Social.names[x.id] = x.username; }); }
+  } catch (e) { /* offline */ }
+  Roster.loading = false;
+  if (sheet && sheet.kind === 'roster') redrawSheet();
+}
+function examLine(x, mine) {
+  const same = mine && mine.find(m => m.d === x.d);
+  return `<div class="sess" style="--cc:${esc(x.c || 'var(--accent)')}"><i></i><span class="grow"><b>${esc(x.e || '📝')} ${esc(x.n)}</b><br><span class="small muted">${fmtDay(x.d, 'long')}${x.t ? ' · ' + esc(x.t) : ''}${x.k ? ' · ' + esc(x.k) : ''}${x.p ? ' · 📍 ' + esc(x.p) : ''}${same ? ` · <span class="tag acc">zelfde dag als jouw ${esc(same.n)}</span>` : ''}</span></span><span class="tag">${relDay(x.d)}</span></div>`;
+}
+function rosterText() {
+  const ex = myExams(); if (!ex.length) return '';
+  return `📚 Mijn examenrooster${myName() ? ' (' + myName() + ')' : ''}:\n` + ex.map(x => `${x.e} ${x.n} — ${fmtDay(x.d, 'long')}${x.t ? ' om ' + x.t : ''}${x.k ? ' (' + x.k + ')' : ''}${x.p ? ', ' + x.p : ''}`).join('\n') + '\n\nGemaakt met Uni Study 🎓 ' + location.origin + location.pathname.replace(/[^/]*$/, '');
+}
+SHEETS.roster = () => {
+  const mine = myExams(), T = todayKey();
+  const friends = Roster.rows.map(r => ({ name: Social.names[r.user_id] || 'vriend', ex: r.exams.filter(x => x && validDay(x.d) && x.d >= T).sort((a, b) => a.d < b.d ? -1 : 1) })).filter(f => f.ex.length).sort((a, b) => a.name.localeCompare(b.name));
+  return sheetHead('🎓 Examenroosters') + `<div class="stack">
+    <section class="card flat stack"><h3>Mijn examens</h3>
+      ${mine.length ? `<div class="sessions">${mine.map(x => examLine(x)).join('')}</div>` : '<p class="muted small">Nog geen examens. Zet een examendatum bij je vakken.</p>'}
+      ${Sync.user ? `<div class="toggle-row"><div><b>Deel met mijn vrienden</b><p class="help">Je vrienden zien je vakken met datum, uur, soort en locatie. Niets anders.</p></div><span class="switch"><input type="checkbox" ${cfg().shareExams ? 'checked' : ''} data-change="share-exams" aria-label="Deel mijn examenrooster met vrienden"><i></i></span></div>` : `<p class="help">Log in om je rooster met vrienden in de app te delen.</p><a class="btn sm" href="flashcards.html#auth" style="justify-self:start">Inloggen</a>`}
+      ${mine.length ? `<div class="row"><button class="btn sm primary" data-act="roster-share">📤 Stuur als bericht</button><button class="btn sm" data-act="roster-copy">📋 Kopieer</button><button class="btn sm" data-act="ics-all">📆 Agenda (.ics)</button></div>` : ''}
+    </section>
+    <section class="stack"><h3>Van mijn vrienden</h3>
+      ${!Sync.user ? '<p class="muted small">Log in om de roosters van je vrienden te zien.</p>' : Roster.loading && !Roster.at ? '<p class="muted small">Laden… ⏳</p>'
+      : friends.length ? friends.map(f => `<div class="card flat stack"><div class="friend">${avatarHtml(f.name)}<b class="grow">@${esc(f.name)}</b><span class="muted small">${plural(f.ex.length, 'examen', 'examens')}</span></div><div class="sessions">${f.ex.map(x => examLine(x, mine)).join('')}</div></div>`).join('')
+      : '<p class="muted small">Nog geen vrienden die hun rooster delen. Vraag hen om bij 🎓 Examenroosters "Deel met mijn vrienden" aan te zetten. Vrienden toevoegen doe je in Flashcards.</p>'}
+    </section></div>`;
+};
+ACT.roster = () => { openSheet('roster'); loadRoster(true); };
+ACT['roster-copy'] = async () => { toast(await copyText(rosterText()) ? 'Rooster gekopieerd 📋' : 'Kopiëren lukte niet.'); };
+ACT['roster-share'] = async () => {
+  const text = rosterText();
+  try { if (navigator.share) { await navigator.share({ title: 'Mijn examenrooster', text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  toast(await copyText(text) ? 'Rooster gekopieerd — plak het in je chat 📋' : 'Delen lukte niet.');
+};
+CHANGE['share-exams'] = el => { cfg().shareExams = el.checked; touchSettings(); Sync.push(); toast(el.checked ? 'Je vrienden kunnen je examenrooster nu zien 👥' : 'Je examenrooster is niet meer gedeeld'); };
