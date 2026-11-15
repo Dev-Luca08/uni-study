@@ -184,7 +184,7 @@ function studyExtras() {
   const ids = ch && (ch.decks || []).length ? ch.decks : Flash.courseDeckIds(c);
   const decks = ids.map(id => Flash.get(id)).filter(Boolean).slice(0, 2);
   const feel = ch && (it.type === 'study' || it.type === 'review') ? `<p class="s-sub" style="margin-top:6px">Hoe ging ${esc(ch.title)}?</p><div class="feel">${[['easy', 'Makkelijk'], ['ok', 'Oké'], ['hard', 'Moeilijk']].map(([k, l]) => `<button class="btn" data-act="study-feel" data-v="${k}" aria-pressed="${Study.felt === k}">${l}</button>`).join('')}</div>${Study.felt === 'hard' ? '<p class="s-sub small">Genoteerd. Dit hoofdstuk krijgt meer tijd bij het herhalen.</p>' : ''}` : '';
-  const cards = decks.map(d => { const s = Flash.stats(d); return `<a class="btn block" href="${Flash.link(d.id)}">${icon('cards')} Oefen de kaartjes: ${esc(d.name)} <span class="muted small">(${s.due + s.newToday} klaar om te oefenen)</span></a>`; }).join('');
+  const cards = decks.map(d => { const s = Flash.stats(d), n = s.due + s.newToday; return n ? `<button class="btn block" data-act="cards-go" data-deck="${esc(d.id)}">${icon('cards')} Oefen nu de kaartjes: ${esc(d.name)} <span class="muted small">(${n})</span></button>` : ''; }).join('');
   return feel + cards;
 }
 ACT['study-feel'] = el => {
@@ -285,4 +285,86 @@ setInterval(() => {
   if (document.visibilityState === 'visible') nowLoad();
 }, 15000);
 
+
+/* =========================================================
+   Flashcards inside the study screen: same rules as the
+   Flashcards app (new, learning, known with growing gaps),
+   saved to the same set so both apps stay in step.
+   ========================================================= */
+const CardGap = { again: 3, hard: 6, good: 7 };
+let cardSes = null;
+function saveDeck(d) {
+  d.updated = Date.now(); d.last = Date.now();
+  const own = lsGet(FC.decks, []), list = Array.isArray(own) ? own : [], i = list.findIndex(x => x && x.id === d.id);
+  if (i >= 0) list[i] = d; else list.push(d);
+  lsSet(FC.decks, list); Flash.localAt = 0; Flash.ver++;
+  if (!Sync.user || !Sync.sb) return;
+  clearTimeout(saveDeck.t);
+  saveDeck.t = setTimeout(() => {
+    Sync.sb.from('decks').upsert({ owner: Sync.user.id, id: d.id, folder_id: d.folder || null, name: String(d.name || '').slice(0, 200), visibility: d.vis || 'private', card_count: d.cards.length, data: d, deleted: false, updated_at: d.updated }).then(() => {}, () => {});
+  }, 1500);
+}
+function startCards(deckId) {
+  const d = Flash.get(deckId); if (!d) { toast('Deze set vond ik niet op dit toestel.'); return; }
+  if (d.ro) { location.href = Flash.link(deckId); return; }
+  const t = flashDayNum(todayKey()), learn = [], rev = [], fresh = [];
+  for (const c of d.cards) { if (c.st === 'learn') learn.push(c.id); else if (c.st === 'review') { if ((c.due || 0) <= t) rev.push(c.id); } else fresh.push(c.id); }
+  const lim = (d.opt && d.opt.newLimit) || 0, sh = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const shuffle = !d.opt || d.opt.shuffle !== false;
+  const ids = [...learn, ...rev, ...(shuffle ? sh(fresh) : fresh).slice(0, lim || undefined)];
+  if (shuffle) sh(ids);
+  if (!ids.length) { toast('Geen kaartjes te oefenen vandaag. Alles is bij!'); return; }
+  cardSes = { deck: d, queue: ids, total: ids.length, side: 0, revealed: false, answers: 0, sides: 0, learned: 0 };
+  let el = document.getElementById('study'); if (!el) { el = document.createElement('div'); el.id = 'study'; document.body.appendChild(el); document.body.classList.add('sheet-open'); }
+  if (Study.running) studyRun(false);
+  drawCards();
+}
+function cardStart(d) { const s = d.opt && d.opt.start != null ? d.opt.start : 0; return s === -1 ? Math.floor(Math.random() * d.n) : Math.min(s, d.n - 1); }
+function drawCards() {
+  const el = document.getElementById('study'), s = cardSes; if (!el || !s) return;
+  const d = s.deck, c = d.cards.find(x => x.id === s.queue[0]);
+  if (!c) { endCards(); return; }
+  if (s.cur !== c.id) { s.cur = c.id; s.start = cardStart(d); s.side = 0; s.revealed = false; s.sides++; }
+  const idx = (s.start + s.side) % d.n, text = (c.s || [])[idx] || '', left = new Set(s.queue).size;
+  const kind = c.st === 'new' ? 'Nieuw' : c.st === 'learn' ? 'Aan het leren' : 'Herhaling';
+  el.className = ''; el.style.setProperty('--cc', 'var(--accent)');
+  el.innerHTML = `<div class="in"><div class="s-top"><button class="icon-btn" data-act="cards-stop" aria-label="Stoppen">✕</button><div class="grow"><b>${esc(d.name)}</b><small>${kind}</small></div><span class="tag acc">nog ${left}</span></div>
+    <div class="s-bar"><span style="width:${Math.round((1 - left / s.total) * 100)}%"></span></div>
+    <button class="flash fcard" data-act="cards-flip" aria-label="Kaart, tik om te draaien"><span class="fside">${esc((d.names || [])[idx] || '')}</span><span class="ftext${text.length > 120 ? ' long' : ''}">${text ? esc(text) : '(deze kant is leeg)'}</span><span class="fhint">${s.revealed ? (d.n > 2 ? 'tik voor de volgende kant' : '') : 'tik om te draaien'}</span></button>
+    ${s.revealed ? `<div class="feel"><button class="btn fa" data-act="cards-ans" data-g="again">Nog niet</button><button class="btn fh" data-act="cards-ans" data-g="hard">Ken het, herhaal</button><button class="btn fg" data-act="cards-ans" data-g="good">Ik ken het</button></div>` : `<button class="s-big" data-act="cards-flip">Draai om</button>`}</div>`;
+}
+function endCards() {
+  const s = cardSes; cardSes = null; if (!s) return;
+  if (Sync.user && Sync.sb && s.answers) Sync.sb.rpc('add_study', { p_day: todayKey(), p_answers: s.answers, p_sides: s.sides, p_learned: s.learned }).then(() => {}, () => {});
+  snapDecks();
+  if (!s.queue.length) {
+    const it = planDay(todayKey()).items.find(i => i.type === 'cards' && !itemDone(i) && getCourse(i.course) && Flash.courseDeckIds(getCourse(i.course)).includes(s.deck.id));
+    if (it) toggleItem(it);
+    toast(`Kaartjes klaar: ${s.answers} antwoorden${s.learned ? `, ${s.learned} nieuw gekend` : ''}.`, 4000);
+  }
+  if (Study.key && findItem(Study.key)) drawStudy(); else closeStudy();
+}
+Object.assign(ACT, {
+  'cards-go'(el) { closeSheetIfOpen(); startCards(el.dataset.deck); },
+  'cards-stop'() { endCards(); },
+  'cards-flip'() { const s = cardSes; if (!s) return; if (s.revealed && s.deck.n <= 2) return; s.side = (s.side + 1) % s.deck.n; s.revealed = true; s.sides++; drawCards(); },
+  'cards-ans'(el) {
+    const s = cardSes; if (!s || !s.revealed) return;
+    const d = s.deck, c = d.cards.find(x => x.id === s.queue[0]), g = el.dataset.g, t = flashDayNum(todayKey()); if (!c) return;
+    const cid = s.queue.shift(); let gap = 0;
+    c.reps = (c.reps || 0) + 1;
+    if (c.st === 'review') {
+      if (g === 'good') { c.iv = Math.max((c.iv || 0) + 1, Math.round((c.iv || 0) * 2.5)); c.due = t + c.iv; }
+      else if (g === 'hard') { c.st = 'learn'; c.k = 1; gap = CardGap.hard; }
+      else { c.st = 'learn'; c.k = 0; c.iv = 0; c.lapses = (c.lapses || 0) + 1; gap = CardGap.again; }
+    } else {
+      c.st = 'learn';
+      if (g === 'good') { c.k = (c.k || 0) + 1; if (c.k >= 2) { c.st = 'review'; c.k = 0; c.iv = c.iv > 0 ? Math.max(1, Math.round(c.iv * 1.2)) : 1; c.due = t + c.iv; s.learned++; } else gap = CardGap.good; }
+      else { c.k = 0; gap = g === 'hard' ? CardGap.hard : CardGap.again; }
+    }
+    if (gap) s.queue.splice(Math.min(gap, s.queue.length), 0, cid);
+    s.answers++; s.cur = null; saveDeck(d);
+    drawCards();
+  }
+});
 render();

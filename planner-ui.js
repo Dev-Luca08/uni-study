@@ -231,7 +231,7 @@ function itemHtml(it, opts = {}) {
   const t = itemText(it);
   const late = it.late ? '<span class="tag late">te laat</span>' : '';
   const decks = it.type === 'cards' && c ? Flash.courseDecks(c) : [];
-  const action = it.type === 'cards' && decks.length === 1 ? `<a class="btn xs primary" href="${Flash.link(decks[0].id)}">Oefen</a>`
+  const action = it.type === 'cards' && decks.length === 1 ? `<button class="btn xs primary" data-act="cards-go" data-deck="${esc(decks[0].id)}">Oefen</button>`
     : it.type === 'cards' && decks.length ? `<button class="btn xs primary" data-act="item-menu" data-key="${esc(it.key)}">Oefen</button>`
     : (!done && it.type !== 'task' ? `<button class="icon-btn sm" data-act="study-go" data-key="${esc(it.key)}" aria-label="Start met studeren" title="Start met studeren">${icon('play')}</button>` : '');
   return `<div class="item${done ? ' done' : ''}" style="${cc(c)}">
@@ -551,7 +551,7 @@ function courseFlashHtml(c) {
   const ds = Flash.courseDecks(c), fs = Flash.courseStats(c), sugg = Flash.suggest(c);
   const rows = ds.map(d => {
     const s = Flash.stats(d);
-    return `<div class="deck-row"><div class="grow"><b>${esc(d.name)}</b><span class="small muted">${s.kn}/${s.total} gekend · ${s.due} te herhalen</span><div class="dbar"><span class="k" style="width:${s.total ? s.kn / s.total * 100 : 0}%"></span><span class="l" style="width:${s.total ? s.lr / s.total * 100 : 0}%"></span></div></div><a class="btn xs primary" href="${Flash.link(d.id)}">Oefen</a><button class="icon-btn sm" data-act="deck-unlink" data-course="${c.id}" data-deck="${esc(d.id)}" aria-label="Ontkoppelen" title="Ontkoppelen">✕</button></div>`;
+    return `<div class="deck-row"><div class="grow"><b>${esc(d.name)}</b><span class="small muted">${s.kn}/${s.total} gekend · ${s.due} te herhalen</span><div class="dbar"><span class="k" style="width:${s.total ? s.kn / s.total * 100 : 0}%"></span><span class="l" style="width:${s.total ? s.lr / s.total * 100 : 0}%"></span></div></div><button type="button" class="btn xs primary" data-act="cards-go" data-deck="${esc(d.id)}">Oefen</button><button class="icon-btn sm" data-act="deck-unlink" data-course="${c.id}" data-deck="${esc(d.id)}" aria-label="Ontkoppelen" title="Ontkoppelen">✕</button></div>`;
   }).join('');
   return `<section class="card section stack">
       <div class="section-head" style="margin:0"><h2>🗂️ Flashcards</h2>${fs.decks ? `<span class="tag ${fs.pct >= 80 ? 'good' : 'acc'}">${fs.pct}% gekend</span>` : ''}</div>
@@ -678,7 +678,7 @@ SHEETS.item = () => {
   }
   if (isToday && !done && STUDY_TYPES.includes(it.type)) h += `<button data-act="study-go"><i>${icon('play')}</i><span>Start met studeren<small>Studeerscherm: tik per pagina, met tijd, pauzes en een stopsignaal</small></span></button>`;
   if (isToday && it.type !== 'task' && it.type !== 'cards') h += `<button data-act="item-timer"><i>⏱</i><span>Start de timer hiervoor<small>De tijd telt mee in je statistieken${ch ? ' en je tempo' : ''}</small></span></button>`;
-  if (c && (it.type === 'cards' || it.type === 'review')) for (const d of Flash.courseDecks(c)) { const s = Flash.stats(d); h += `<a href="${Flash.link(d.id)}"><i>🗂️</i><span>Oefen ${esc(d.name)}<small>${s.due} te herhalen · ${s.nw} nieuw · ${s.pct}% gekend</small></span></a>`; }
+  if (c && (it.type === 'cards' || it.type === 'review')) for (const d of Flash.courseDecks(c)) { const s = Flash.stats(d); h += `<a href="#" data-act="cards-go" data-deck="${esc(d.id)}"><i>🗂️</i><span>Oefen ${esc(d.name)}<small>${s.due} te herhalen · ${s.nw} nieuw · ${s.pct}% gekend</small></span></a>`; }
   if (ch) h += `<button data-act="chapter" data-id="${ch.id}"><i>📖</i><span>Open ${esc(ch.title)}<small>Pagina's, status, moeilijke stukken, notities</small></span></button>`;
   if (c && it.type !== 'task' && day >= T && !(c.skips || []).includes(day)) h += `<button data-act="skip-day"><i>🙅</i><span>${isToday ? 'Vandaag' : fmtDay(day)} niet voor ${esc(c.name)}<small>Ik verdeel het over je andere dagen</small></span></button>`;
   if (it.type === 'task') h += `<button data-act="task-edit" data-id="${it.id}"><i>✏️</i><span>Bewerken / verplaatsen</span></button><button data-act="task-tomorrow" data-id="${it.id}"><i>➡️</i><span>Naar morgen</span></button><button data-act="task-del" data-id="${it.id}"><i>🗑</i><span>Verwijderen</span></button>`;
@@ -751,7 +751,7 @@ SHEETS.chapter = () => {
         <div class="list-edit" id="hard-list">${hardList(ch)}</div>
         <form class="row" data-form="hard-add"><input class="field grow" name="t" placeholder="bv. p. 12 — formule van Bayes" maxlength="140"><button class="btn sm">+ Toevoegen</button></form></div>
       <div class="stack"><span class="lbl">🗂️ Flashcards van dit hoofdstuk</span>
-        ${decks.length ? `<div class="decks">${decks.map(d => { const s = Flash.stats(d); return `<div class="deck-row"><div class="grow"><b>${esc(d.name)}</b><span class="small muted">${s.kn}/${s.total} gekend</span></div><a class="btn xs primary" href="${Flash.link(d.id)}">Oefen</a></div>`; }).join('')}</div>` : '<p class="muted small">Nog niets gekoppeld.</p>'}
+        ${decks.length ? `<div class="decks">${decks.map(d => { const s = Flash.stats(d); return `<div class="deck-row"><div class="grow"><b>${esc(d.name)}</b><span class="small muted">${s.kn}/${s.total} gekend</span></div><button type="button" class="btn xs primary" data-act="cards-go" data-deck="${esc(d.id)}">Oefen</button></div>`; }).join('')}</div>` : '<p class="muted small">Nog niets gekoppeld.</p>'}
         <div class="row"><button class="btn sm primary" data-act="prompt" data-course="${ch.course}" data-chapter="${ch.id}">🤖 AI-prompt voor dit hoofdstuk</button><button class="btn sm" data-act="deck-pick" data-course="${ch.course}" data-chapter="${ch.id}">🔗 Set koppelen</button></div></div>
       <label class="fld"><span class="lbl">📝 Notities</span><textarea class="field" data-change="ch-notes" data-id="${ch.id}" placeholder="Wat moet je zeker onthouden?">${esc(ch.notes || '')}</textarea></label>
       ${(ch.files || []).length ? `<p class="help">Getelde bestanden: ${ch.files.map(f => `${esc(f.name)} (${f.pages} ${unitShort(f.unit)})`).join(', ')}</p>` : ''}
