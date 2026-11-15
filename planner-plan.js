@@ -24,7 +24,16 @@ const KIND = {
 const KORDER = { exam: -1, review: 0, prep: 1, study: 2, final: 3, cards: 4, task: 5 };
 
 const isOff = day => (cfg().offDays || []).includes(day);
-const capOf = day => isOff(day) ? 0 : Math.max(0, int(cfg().cap[wday(day)], 0));
+const toMin = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return m ? +m[1] * 60 + +m[2] : null; };
+/* lessons: study time is planned around your classes */
+function lessonOf(day) { const l = (cfg().lessons || [])[wday(day)]; const a = l && toMin(l.from), b = l && toMin(l.to); return a != null && b != null && b > a ? [a, b] : null; }
+function dayStartMin(day) { const s = toMin(cfg().startTime) ?? 540, l = lessonOf(day); return l && l[0] <= s + 30 && l[1] > s ? l[1] : s; }
+function freeMin(day) {
+  const l = lessonOf(day); if (!l) return Infinity;
+  const s = toMin(cfg().startTime) ?? 540, e = Math.max(s, toMin(cfg().endTime) ?? 1320);
+  return Math.max(0, (e - s) - Math.max(0, Math.min(e, l[1]) - Math.max(s, l[0])));
+}
+const capOf = day => isOff(day) ? 0 : Math.max(0, Math.min(int(cfg().cap[wday(day)], 0), freeMin(day)));
 function capFor(c, day) {
   if ((c.skips || []).includes(day)) return 0;
   if (validDay(c.exam) && day >= c.exam) return 0;

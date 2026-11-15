@@ -388,7 +388,7 @@ SHEETS.settings = () => {
       <div class="row"><input class="field grow" type="date" id="off-from" min="${T}" aria-label="Van"><input class="field grow" type="date" id="off-to" min="${T}" aria-label="Tot en met (optioneel)"><button type="button" class="btn sm" data-act="off-add">+ Toevoegen</button></div><p class="help">Eén dag, of een periode (van – tot en met), bv. een vakantie.</p></div>
     <div class="card flat stack"><span class="lbl">📖 Tempo (standaard, per vak aan te passen)</span><div class="fgrid">${n('minPerPage', s.minPerPage, 'Minuten per pagina studeren', 'min="0.5" step="0.5"')}${n('minPerSlide', s.minPerSlide, 'Minuten per dia', 'min="0.5" step="0.5"')}${n('prepMinPerPage', s.prepMinPerPage, 'Minuten per pagina samenvatten', 'min="0.5" step="0.5"')}${n('summaryRatio', s.summaryRatio, 'Samenvatting = % van de cursus', 'min="5" max="100"')}</div></div>
     <div class="card flat stack"><span class="lbl">🔁 Herhalen</span><label class="fld"><span>Herhaalschema (dagen nadat je iets kent)</span><input class="field" name="reviewOffsets" value="${s.reviewOffsets.join(', ')}" placeholder="1, 3, 7, 14"><span class="help">Leeg = geen herhalingen</span></label>
-      <div class="fgrid">${n('reviewPct', s.reviewPct, 'Een herhaling duurt … % van de studeertijd', 'min="0" max="100"')}${n('buffer', s.buffer, 'Buffer-dagen vóór elk examen', 'min="0" max="30"')}${n('finalPct', s.finalPct, 'Eindherhaling duurt … % van de studeertijd', 'min="0" max="100"')}${n('cardsSec', s.cardsSec, 'Seconden per flashcard', 'min="3" max="120"')}</div></div>
+      <div class="fgrid">${n('reviewPct', s.reviewPct, 'Een herhaling duurt … % van de studeertijd', 'min="0" max="100"')}${n('buffer', s.buffer, 'Dagen alleen herhalen vóór elk examen', 'min="0" max="30"')}${n('finalPct', s.finalPct, 'Eindherhaling duurt … % van de studeertijd', 'min="0" max="100"')}${n('cardsSec', s.cardsSec, 'Seconden per flashcard', 'min="3" max="120"')}</div></div>
     <div class="card flat stack"><span class="lbl">🍅 Pomodoro</span><div class="fgrid">${n('pFocus', p.focus, 'Focus (min)', 'min="1" max="240"')}${n('pShort', p.short, 'Korte pauze (min)', 'min="1" max="60"')}${n('pLong', p.long, 'Lange pauze (min)', 'min="1" max="120"')}${n('pEvery', p.every, 'Lange pauze na … rondes', 'min="1" max="12"')}</div>
       <label class="check-row"><input type="checkbox" name="autoBreak" ${p.autoBreak ? 'checked' : ''}> Pauze start vanzelf</label><label class="check-row"><input type="checkbox" name="autoFocus" ${p.autoFocus ? 'checked' : ''}> Volgende focus start vanzelf</label></div>
     <div class="sheet-foot"><button type="button" class="btn" data-act="sheet-close">Sluiten</button><button class="btn primary">Opslaan</button></div></form>
@@ -576,7 +576,7 @@ function studyRun(on) {
 function startStudyMode(key) {
   const it = (key && findItem(key)) || studyQueue()[0];
   if (!it || itemDone(it)) { toast('Alles voor vandaag is al gedaan!'); return; }
-  Object.assign(Study, { key: it.key, running: false, acc: 0, mark: 0, brkAt: 0, brk: null, done: false, after: '' });
+  Object.assign(Study, { key: it.key, running: false, acc: 0, mark: 0, brkAt: 0, brk: null, done: false, after: '', budget: 0, timeUp: false, felt: '' });
   studyRun(true);
   let d = document.getElementById('study'); if (!d) { d = document.createElement('div'); d.id = 'study'; document.body.appendChild(d); }
   document.body.classList.add('sheet-open');
@@ -613,9 +613,9 @@ function drawStudy() {
       <div class="s-row"><button class="btn primary" data-act="study-resume">${icon('play')} Verder studeren</button><button class="btn" data-act="study-close">Stop voor nu</button></div>`;
   } else if (Study.done) {
     const next = studyQueue()[0], nt = next ? itemText(next) : null, nc = next ? getCourse(next.course) : null;
-    main = `<div class="s-main"><div class="s-stop">STOP!</div><h2>${next ? 'Dit stuk is klaar' : 'Je bent klaar voor vandaag'}</h2>
+    main = `<div class="s-main"><div class="s-stop">STOP!</div><h2>${Study.timeUp ? 'Je tijd is om' : next ? 'Dit stuk is klaar' : 'Je bent klaar voor vandaag'}</h2>
       <p class="s-sub">${next ? `Goed gedaan. Volgende: <b>${nc ? esc(nc.name) + ' · ' : ''}${nt.title}</b> (±${fmtMin(next.min)})` : 'Alles wat vandaag gepland stond is gedaan. Leg je boeken weg, je hebt het verdiend.'}</p>
-      <div class="s-facts"><div><b>${Timer.fmt(studyMs())}</b><small>gestudeerd</small></div><div><b>${nDone}/${all.length}</b><small>taken klaar</small></div><div><b>${Streak.current()}</b><small>dagen op rij</small></div></div></div>
+      <div class="s-facts"><div><b>${Timer.fmt(studyMs())}</b><small>gestudeerd</small></div><div><b>${nDone}/${all.length}</b><small>taken klaar</small></div><div><b>${Streak.current()}</b><small>dagen op rij</small></div></div>${studyExtras()}</div>
       <div class="s-row">${next ? `<button class="btn primary" data-act="study-next">${icon('arrowr')} Volgende taak</button>` : ''}<button class="btn${next ? '' : ' primary'}" data-act="study-close">${next ? 'Stop voor nu' : 'Sluiten'}</button></div>`;
   } else if (paged) {
     const doneU = Math.min(it.units, Math.round(itemFrac(it) * it.units)), page = it.from + doneU, pace = studyPace(it), unit = it.unit === 'dia' ? 'Dia' : 'Pagina';
@@ -643,7 +643,7 @@ Object.assign(ACT, {
   'study-close'() { closeStudy(); },
   'study-pause'() { studyRun(!Study.running); drawStudy(); },
   'study-resume'() { Study.brk = null; Study.brkAt = studyMs(); studyRun(true); drawStudy(); },
-  'study-next'() { const n = studyQueue()[0]; if (!n) { closeStudy(); return; } Object.assign(Study, { key: n.key, done: false, mark: studyMs() }); studyRun(true); drawStudy(); },
+  'study-next'() { const n = studyQueue()[0]; if (!n) { closeStudy(); return; } Object.assign(Study, { key: n.key, done: false, mark: studyMs(), budget: 0, timeUp: false, felt: '' }); studyRun(true); drawStudy(); },
   'study-page'() {
     const it = findItem(Study.key), ch = it && getChapter(it.chapter), T = todayKey(); if (!ch) return;
     if (!Study.running) studyRun(true);

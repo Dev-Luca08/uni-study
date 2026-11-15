@@ -7,7 +7,7 @@
 const app = document.getElementById('app');
 const LS_TAB = 'unistudy.tab.v1';
 let view = { tab: lsGet(LS_TAB, 'today') || 'today' };
-if (!['today', 'cal', 'courses', 'timer', 'stats'].includes(view.tab)) view.tab = 'today';
+if (!['today', 'cal', 'courses', 'timer', 'stats', 'more'].includes(view.tab)) view.tab = 'today';
 let sheet = null;
 const ACT = {}, CHANGE = {}, FORMS = {}, INPUT = {}, SHEETS = {};
 
@@ -54,10 +54,11 @@ function header() {
     <nav class="app-switch" aria-label="Kies onderdeel" style="grid-template-columns:auto 1fr 1fr"><a href="index.html" aria-label="Menu" style="padding:0 12px">${icon('logo')}</a><span class="on" aria-current="page">${icon('plan')} Planning</span><a href="flashcards.html">${icon('cards')} Flashcards</a></nav>
     ${miniTimer()}`;
 }
-const TABS = [['today', 'today', 'Vandaag'], ['cal', 'plan', 'Kalender'], ['courses', 'book', 'Vakken'], ['timer', 'timer', 'Timer'], ['stats', 'stats', 'Stats']];
+const TABS = [['today', 'today', 'Vandaag'], ['courses', 'book', 'Vakken'], ['more', 'gear', 'Meer']];
+const SUB_TABS = ['cal', 'timer', 'stats'];
 function tabsBar() {
   return `<nav class="tabs" aria-label="Onderdelen"><div class="tabs-in">${TABS.map(([k, i, l]) =>
-    `<button class="tab${view.tab === k ? ' on' : ''}" data-act="tab" data-tab="${k}"${view.tab === k ? ' aria-current="page"' : ''}><i aria-hidden="true">${icon(i)}</i>${l}${k === 'timer' && Timer.s.running ? '<span class="pulse" aria-label="timer loopt"></span>' : ''}</button>`).join('')}</div></nav>`;
+    `<button class="tab${(SUB_TABS.includes(view.tab) ? 'more' : view.tab) === k ? ' on' : ''}" data-act="tab" data-tab="${k}"><i aria-hidden="true">${icon(i)}</i>${l}${k === 'more' && Timer.s.running ? '<span class="pulse" aria-label="timer loopt"></span>' : ''}</button>`).join('')}</div></nav>`;
 }
 function render() {
   const t = view.tab;
@@ -67,11 +68,13 @@ function render() {
     else if (t === 'courses') main = view.course && getCourse(view.course) ? renderCourse(getCourse(view.course)) : renderCourses();
     else if (t === 'timer') main = renderTimer();
     else if (t === 'stats') main = renderStats();
+    else if (t === 'more') main = renderMore();
     else main = renderToday();
   } catch (e) {
     console.error(e);
     main = `<div class="card stack"><p>Oei, er ging iets mis bij het tonen van dit scherm.</p><button class="btn sm" data-act="tab" data-tab="today">Terug naar vandaag</button></div>`;
   }
+  if (SUB_TABS.includes(t)) main = `<button class="btn sm ghost" data-act="tab" data-tab="more" style="margin-bottom:6px">← Meer</button>` + main;
   app.innerHTML = header() + `<main id="main">${main}</main><footer class="footer">Made by <b>Luca Cicarelli</b> · Uni Study</footer>` + tabsBar();
   if (t === 'today') setTimeout(snapshotPlan, 0);
 }
@@ -261,8 +264,7 @@ function tasksHtml(items) {
   }).join('')}</div>`;
 }
 function timelineHtml(items) {
-  const [h, m] = String(cfg().startTime || '09:00').split(':').map(Number);
-  let cur = (h || 9) * 60 + (m || 0);
+  let cur = dayStartMin(todayKey());
   const br = int(cfg().breakMin, 10);
   const fmt = x => `${pad2(Math.floor(x / 60) % 24)}:${pad2(Math.round(x % 60))}`;
   const ordered = items.slice().sort((a, b) => {
@@ -594,7 +596,7 @@ function coursePlanForm(c) {
       <form class="form section" data-form="course-plan" data-id="${c.id}">
         <div class="fgrid">
           <label class="fld"><span>Beginnen op</span><input class="field" type="date" name="start" value="${esc(c.start || '')}"><span class="help">Leeg = vandaag</span></label>
-          <label class="fld"><span>Buffer vóór examen (dagen)</span><input class="field" type="number" min="0" max="30" name="buffer" value="${c.buffer ?? ''}" placeholder="${g.buffer}" inputmode="numeric"><span class="help">Alleen herhalen, niets nieuws</span></label>
+          <label class="fld"><span>Dagen om alleen te herhalen vóór het examen</span><input class="field" type="number" min="0" max="30" name="buffer" value="${c.buffer ?? ''}" placeholder="${g.buffer}" inputmode="numeric"><span class="help">Alleen herhalen, niets nieuws</span></label>
         </div>
         <label class="fld"><span>Hoe wil je plannen?</span><select class="field" name="mode" data-change="mode-show">
           ${opt('auto', 'Slim: verdeeld volgens de deadlines', c.mode)}${opt('pages', "Minstens X pagina's per dag", c.mode)}${opt('minutes', 'Minstens X minuten per dag', c.mode)}${opt('task', 'Vaste taken: telkens hele hoofdstukken', c.mode)}</select></label>
@@ -690,6 +692,10 @@ SHEETS.course = () => {
     <form class="form" data-form="course">
       <div class="row" style="gap:12px"><span class="cc-emoji" id="emoji-prev" style="--cc:${esc(d.color)};width:58px;height:58px;font-size:2rem">${emo(d)}</span>
         <label class="fld grow"><span>Naam van het vak</span><input class="field" name="name" value="${esc(d.name)}" required maxlength="60" placeholder="bv. Wiskunde 1" autofocus></label></div>
+      <div class="card flat stack"><span class="lbl">Wanneer is het examen?</span>
+        <div class="fgrid keep"><label class="fld"><span>Datum</span><input class="field" type="date" name="exam" value="${esc(d.exam || '')}"></label><label class="fld"><span>Uur</span><input class="field" type="time" name="examTime" value="${esc(d.examTime || '')}"></label></div>
+      </div>
+      <details class="more"><summary>Meer opties (icoon, kleur, prof, soort examen …)</summary><div class="form section">
       <div class="fld"><span class="lbl">Icoon of emoji</span><div class="emoji-grid" data-icons style="max-height:150px">${UniIcon.list.map(n => `<button type="button" data-act="pick-emoji" data-v="i:${n}" aria-pressed="${d.emoji === 'i:' + n}" aria-label="${UniIcon.label(n)}" title="${UniIcon.label(n)}">${icon(n)}</button>`).join('')}</div><div class="emoji-grid">${EMOJIS.map(e => `<button type="button" data-act="pick-emoji" data-v="${e}" aria-pressed="${e === d.emoji}">${e}</button>`).join('')}</div>
         <label class="row small muted">Of typ je eigen emoji: <input class="field" value="${/^i:/.test(d.emoji) ? '' : esc(d.emoji)}" maxlength="8" style="width:80px" data-input="emoji-live" aria-label="Eigen emoji"><input type="hidden" name="emoji" value="${esc(d.emoji)}"></label></div>
       <div class="fld"><span class="lbl">Kleur</span>${swRow('color', d.color)}</div>
@@ -700,11 +706,9 @@ SHEETS.course = () => {
         <div class="fld"><span>Prioriteit</span><div class="seg" role="radiogroup">${['laag', 'normaal', 'hoog'].map(p => `<label><input type="radio" name="priority" value="${p}" ${(d.priority || 'normaal') === p ? 'checked' : ''}><span>${p === 'laag' ? '🐢 laag' : p === 'hoog' ? '🔥 hoog' : 'normaal'}</span></label>`).join('')}</div></div>
       </div>
       <div class="fld"><span>Moeilijkheid</span>${stars('difficulty', d.difficulty || 3)}</div>
-      <div class="card flat stack"><span class="lbl">📝 Examen</span>
-        <div class="fgrid keep"><label class="fld"><span>Datum</span><input class="field" type="date" name="exam" value="${esc(d.exam || '')}"></label><label class="fld"><span>Uur</span><input class="field" type="time" name="examTime" value="${esc(d.examTime || '')}"></label></div>
         <div class="fgrid"><label class="fld"><span>Soort examen</span><select class="field" name="examType">${EXAM_TYPES.map(s => opt(s, s || '—', d.examType || '')).join('')}</select></label>
         <label class="fld"><span>Locatie</span><input class="field" name="examPlace" value="${esc(d.examPlace || '')}" maxlength="80" placeholder="bv. Aula A"></label></div>
-      </div>
+      </div></details>
       <div class="sheet-foot"><button type="button" class="btn" data-act="sheet-close">Annuleren</button><button class="btn primary">${c ? 'Opslaan' : 'Vak toevoegen'}</button></div>
     </form>`;
 };
@@ -718,13 +722,6 @@ SHEETS.chapter = () => {
   return sheetHead('📖 ' + esc(ch.title)) + `
     <form class="form" data-form="chapter" id="ch-form">
       <label class="fld"><span>Titel</span><input class="field" name="title" value="${esc(ch.title)}" maxlength="90" required></label>
-      <div class="fgrid">
-        <label class="fld"><span>Status</span><select class="field" name="status">${Object.entries(STATUS).map(([k, [l, i]]) => opt(k, i + ' ' + l, st)).join('')}</select></label>
-        <label class="fld"><span>Kennen tegen</span><input class="field" type="date" name="due" value="${esc(ch.due || '')}"><span class="help">Leeg = ${c && validDay(c.exam) ? 'automatisch vóór het examen' : 'geen deadline'}</span></label>
-        <label class="fld"><span>Soort</span><select class="field" name="kind">${Object.entries(KINDS).map(([k, l]) => opt(k, l, ch.kind)).join('')}</select></label>
-        <div class="fld"><span>Studeer je uit</span><div class="seg" role="radiogroup">${[['p', "📄 pagina's"], ['dia', "📊 dia's"]].map(([v, l]) => `<label><input type="radio" name="unit" value="${v}" ${ch.unit === v ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div></div>
-      </div>
-      <div class="fld"><span>Moeilijkheid</span>${stars('difficulty', ch.difficulty || 3)}</div>
       <div class="toggle-row card flat"><div><b>Moet je eerst nog een samenvatting maken?</b><p class="help">Dan plan ik eerst tijd in om samen te vatten, en daarna om te studeren.</p></div><span class="switch"><input type="checkbox" name="needSummary" ${ch.needSummary ? 'checked' : ''} data-change="need-summary" aria-label="Samenvatting nodig"><i></i></span></div>
       <div class="fgrid" data-sum="yes" ${ch.needSummary ? '' : 'hidden'}>
         <label class="fld"><span>Pagina's cursus om samen te vatten</span><input class="field" type="number" min="0" name="srcPages" value="${ch.srcPages || ''}" inputmode="numeric"></label>
@@ -735,6 +732,15 @@ SHEETS.chapter = () => {
         <label class="fld" data-sum-hide ${ch.needSummary ? 'hidden' : ''}><span>Aantal ${ch.unit === 'dia' ? "dia's" : "pagina's"}</span><input class="field" type="number" min="0" name="pages" value="${ch.pages || ''}" inputmode="numeric"></label>
         <label class="fld"><span>Al gestudeerd</span><input class="field" type="number" min="0" name="done" value="${ch.done || 0}" inputmode="numeric"><span class="help">van ${tot || '?'} — "ik ben op pagina …"</span></label>
       </div>
+      <details class="more"><summary>Meer opties (status, deadline, soort, moeilijkheid)</summary><div class="form section">
+      <div class="fgrid">
+        <label class="fld"><span>Status</span><select class="field" name="status">${Object.entries(STATUS).map(([k, [l, i]]) => opt(k, i + ' ' + l, st)).join('')}</select></label>
+        <label class="fld"><span>Kennen tegen</span><input class="field" type="date" name="due" value="${esc(ch.due || '')}"><span class="help">Leeg = ${c && validDay(c.exam) ? 'automatisch vóór het examen' : 'geen deadline'}</span></label>
+        <label class="fld"><span>Soort</span><select class="field" name="kind">${Object.entries(KINDS).map(([k, l]) => opt(k, l, ch.kind)).join('')}</select></label>
+        <div class="fld"><span>Studeer je uit</span><div class="seg" role="radiogroup">${[['p', "📄 pagina's"], ['dia', "📊 dia's"]].map(([v, l]) => `<label><input type="radio" name="unit" value="${v}" ${ch.unit === v ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div></div>
+      </div>
+      <div class="fld"><span>Moeilijkheid</span>${stars('difficulty', ch.difficulty || 3)}</div>
+      </div></details>
       <label class="btn sm" style="justify-self:start">📄 Tel de pagina's van een bestand<input type="file" hidden data-change="ch-file" accept=".pdf,.pptx,.ppsx,.docx,.odt,.odp,.txt,.md,image/*"></label>
       <p class="privacy"><span>🔒</span><span>Je bestand wordt alleen op dit toestel gelezen om de pagina's te tellen en daarna meteen vergeten. Er wordt niets geüpload of opgeslagen.</span></p>
       <div class="sheet-foot"><button type="button" class="btn danger" data-act="chapter-del" data-id="${ch.id}">🗑</button><button class="btn primary">Opslaan</button></div>
