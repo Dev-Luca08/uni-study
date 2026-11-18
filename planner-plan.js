@@ -102,7 +102,7 @@ function planCourse(c, T, doneToday, push) {
     const doneAt = Math.max(0, (ch.done || 0) - dt.study);
     const sLeft = Math.max(0, total - doneAt);
     if (pLeft > 0) q.push({ type: 'prep', ch, left: pLeft, pos: prepAt, mpu: prepMpu(c), due, unit: 'p', i: i * 2 });
-    if (sLeft > 0) q.push({ type: 'study', ch, left: sLeft, pos: doneAt, mpu: mpu(c, ch), due, unit: ch.unit === 'dia' ? 'dia' : 'p', i: i * 2 + 1 });
+    if (sLeft > 0) q.push({ type: 'study', ch, left: sLeft, pos: doneAt, mpu: mpu(c, ch), due, unit: ch.unit || 'p', i: i * 2 + 1 });
   });
   q.sort((a, b) => { const x = a.due || '9999', y = b.due || '9999'; return x < y ? -1 : x > y ? 1 : a.i - b.i; });
   r.minsLeft = sum(q, it => it.left * it.mpu);
@@ -186,7 +186,7 @@ function planCourse(c, T, doneToday, push) {
     const tot = studyTotal(ch);
     const m = Math.max(10, Math.round(Math.max(1, tot) * mpu(c, ch) * rp));
     const revs = ch.reviews || {};
-    const mk = (i, late) => ({ type: 'review', course: c.id, chapter: ch.id, idx: i, n: offs.length, units: 0, unit: ch.unit === 'dia' ? 'dia' : 'p', from: 1, to: tot, min: m, key: `rev|${ch.id}|${i}`, late: !!late });
+    const mk = (i, late) => ({ type: 'review', course: c.id, chapter: ch.id, idx: i, n: offs.length, units: 0, unit: ch.unit || 'p', from: 1, to: tot, min: m, key: `rev|${ch.id}|${i}`, late: !!late });
     let overdue = -1, onToday = false;
     offs.forEach((off, i) => {
       if (revs[i]) { if (revs[i] === T) { pushC(T, mk(i)); onToday = true; } return; }

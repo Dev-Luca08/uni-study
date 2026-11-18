@@ -620,12 +620,12 @@ function drawStudy() {
       <div class="s-facts"><div><b>${Timer.fmt(studyMs())}</b><small>gestudeerd</small></div><div><b>${nDone}/${all.length}</b><small>taken klaar</small></div><div><b>${Streak.current()}</b><small>dagen op rij</small></div></div>${studyExtras()}</div>
       <div class="s-row">${next ? `<button class="btn primary" data-act="study-next">${icon('arrowr')} Volgende taak</button>` : ''}<button class="btn${next ? '' : ' primary'}" data-act="study-close">${next ? 'Stop voor nu' : 'Sluiten'}</button></div>`;
   } else if (paged) {
-    const doneU = Math.min(it.units, Math.round(itemFrac(it) * it.units)), page = it.from + doneU, pace = studyPace(it), unit = it.unit === 'dia' ? 'Dia' : 'Pagina';
+    const doneU = Math.min(it.units, Math.round(itemFrac(it) * it.units)), page = it.from + doneU, pace = studyPace(it), unit = it.unit === 'dia' ? 'Dia' : it.unit === 'oef' ? 'Oefening' : it.unit === 'graf' ? 'Grafiek' : 'Pagina';
     main = `<div class="s-main"><span class="s-kind">${it.type === 'prep' ? 'Samenvatting maken' : 'Studeren'}</span>
-      <div class="s-page">${unit} ${page}</div><p class="s-sub">${it.type === 'prep' ? 'cursus ' : ''}${rangeText(it.unit, it.from, it.to)} staat vandaag gepland</p>
+      <div class="s-page">${unit} ${page}</div><p class="s-sub">${it.type === 'prep' ? 'cursus ' : ''}${rangeText(it.unit, it.from, it.to)} staat vandaag gepland</p>${window.UniPack && it.type === 'study' ? UniPack.studyHtml(c, ch, page) : ''}
       <div class="s-bar" role="progressbar" aria-valuenow="${doneU}" aria-valuemin="0" aria-valuemax="${it.units}"><span style="width:${doneU / it.units * 100}%"></span></div>
       <p class="s-count">${doneU} van ${it.units} ${unitWord(it.unit, it.units)} gedaan</p>
-      <div class="s-facts"><div><b data-stime>${Timer.fmt(studyMs())}</b><small>bezig</small></div><div><b>${pace ? (Math.round(pace * 10) / 10).toString().replace('.', ',') : '–'}</b><small>min per ${it.unit === 'dia' ? 'dia' : 'pagina'}</small></div><div><b>±${fmtMin((it.units - doneU) * pace)}</b><small>nog te gaan</small></div></div></div>
+      <div class="s-facts"><div><b data-stime>${Timer.fmt(studyMs())}</b><small>bezig</small></div><div><b>${pace ? (Math.round(pace * 10) / 10).toString().replace('.', ',') : '–'}</b><small>min per ${unitWord(it.unit, 1)}</small></div><div><b>±${fmtMin((it.units - doneU) * pace)}</b><small>nog te gaan</small></div></div></div>
       <button class="s-big" data-act="study-page">${icon('check')} ${unit} ${page} klaar</button>
       <div class="s-row"><button class="btn" data-act="study-pause">${Study.running ? icon('pause') + ' Pauze' : icon('play') + ' Verder'}</button><button class="btn" data-act="study-undo" ${doneU ? '' : 'disabled'}>${icon('undo')} Foutje</button><button class="btn" data-act="study-all">Alles klaar</button></div>`;
   } else {

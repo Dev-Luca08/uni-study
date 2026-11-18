@@ -94,6 +94,7 @@
   function coursesByName(name) { var lc = g('listCourses'); return lc ? lc().filter(function (c) { return nrm(c.name) === nrm(name); }) : []; }
   function chapterFor(course, pack, key) {
     var chs = g('chaptersOf'); if (!chs || !course) return null;
+    if (pack.map && pack.map[key] != null) { var want = nrm(pack.map[key]); return want ? chs(course.id).filter(function (ch) { return nrm(ch.title) === want; })[0] || null : null; }
     var re = new RegExp('(^|[^a-z0-9])' + key + '([^0-9]|$)');
     return chs(course.id).filter(function (ch) {
       var t = nrm(ch.title);
@@ -107,8 +108,9 @@
     var list = mine.map(function (p) {
       var rows = p.secs.map(function (s) {
         var d = s.items.filter(function (_, i) { return dm[p.id + ':' + s.key + ':' + i]; }).length, ch = chapterFor(c, p, s.key);
-        return '<button class="up-row" data-up-open="' + p.id + '" data-up-sec="' + s.key + '"><span class="grow"><b>' + escH(s.title) + '</b><br><span class="small muted">' +
-          (ch ? '↳ ' + escH(ch.title) + ' · ' : '') + d + '/' + s.items.length + ' gedaan</span></span><span class="up-bar"><i style="width:' + Math.round(100 * d / s.items.length) + '%"></i></span><span aria-hidden="true">›</span></button>';
+        var opts = (g('chaptersOf') ? g('chaptersOf')(c.id) : []).map(function (x) { return '<option' + (ch && ch.id === x.id ? ' selected' : '') + '>' + escH(x.title) + '</option>'; }).join('');
+        return '<div class="up-link"><span class="small muted">hoort bij</span><select class="field" data-up-map="' + p.id + '" data-up-key="' + s.key + '"><option value="">— geen hoofdstuk —</option>' + opts + '</select></div><button class="up-row" data-up-open="' + p.id + '" data-up-sec="' + s.key + '"><span class="grow"><b>' + escH(s.title) + '</b><br><span class="small muted">' +
+          d + '/' + s.items.length + ' gedaan</span></span><span class="up-bar"><i style="width:' + Math.round(100 * d / s.items.length) + '%"></i></span><span aria-hidden="true">›</span></button>';
       }).join('');
       return '<div class="stack"><div class="row" style="align-items:center"><b class="grow">' + (p.kind === 'graf' ? '📈 ' : '✏️ ') + escH(p.name) + '</b><span class="muted small">' + count(p) + (p.kind === 'graf' ? ' grafieken' : ' oefeningen') + '</span></div>' + rows +
         '<div class="row">' + (p.srv ? '<span class="tag good">🌐 online voor iedereen</span>' : '<button class="btn sm primary" data-up-pub="' + p.id + '">🌐 Zet online voor iedereen</button>') + '<button class="btn sm" data-up-share="' + p.id + '">Stuur naar vriend</button><button class="btn sm danger" data-up-del="' + p.id + '">Verwijder</button></div></div>';
@@ -116,6 +118,22 @@
     return '<section class="card section stack"><div class="section-head"><h2>Oefenen</h2></div>' +
       (list || '<p class="muted small">Laad een oefenbundel of grafiekenbundel (HTML-bestand). Je oefent dan per werkcollege of hoofdstuk, één oefening of grafiek tegelijk, met tussenstappen en antwoord.</p>') +
       '<label class="btn sm" style="justify-self:start">📚 Oefenbundel of grafieken toevoegen<input type="file" accept=".html,.htm,text/html" hidden data-up-file="' + escH(c.name) + '"></label></section>';
+  }
+
+  /* ---------- in the study screen: show the exact exercise or graph that is planned ---------- */
+  function studyHtml(course, ch, n) {
+    if (!course || !ch) return '';
+    for (var i = 0; i < packs.length; i++) {
+      var p = packs[i]; if (nrm(p.course) !== nrm(course.name)) continue;
+      for (var j = 0; j < p.secs.length; j++) {
+        var s = p.secs[j], hit = chapterFor(course, p, s.key); if (!hit || hit.id !== ch.id) continue;
+        var it = s.items[n - 1]; if (!it) return '';
+        return '<div class="up-embed up-card"><div class="up-q"><span class="up-nr">' + escH(it.nr) + '</span><div>' + mathify(it.q) + '</div></div>' +
+          (it.steps.length ? '<details><summary class="btn sm">' + (it.graf ? 'Zo teken je het' : 'Toon tussenstappen') + '</summary><ol class="up-steps">' + it.steps.map(function (h, k) { return '<li><span class="up-n">' + (k + 1) + '</span><div>' + mathify(h) + '</div></li>'; }).join('') + '</ol></details>' : '') +
+          '<details><summary class="btn sm">' + (it.graf ? 'Toon de grafiek' : 'Toon antwoord') + '</summary><div class="up-ans"><div class="up-res">' + (it.graf ? it.ans : mathify(it.ans)) + '</div>' + (it.extra || '') + '</div></details></div>';
+      }
+    }
+    return '';
   }
 
   /* ---------- trainer ---------- */
@@ -263,7 +281,9 @@
   });
   document.addEventListener('keydown', function (e) { if (!T) return; if (e.key === 'Escape') close(); else if (e.key === 'ArrowRight') go(T.i + 1); else if (e.key === 'ArrowLeft') go(T.i - 1); else if (e.key === ' ' && !T.ans) { e.preventDefault(); if (T.shown < T.s.items[T.i].steps.length) T.shown++; else T.ans = true; draw(); } });
   document.addEventListener('change', async function (e) {
-    var el = e.target; if (!el.dataset || el.dataset.upFile == null || !el.files[0]) return;
+    var el = e.target;
+    if (el.dataset && el.dataset.upMap) { var mp = packs.filter(function (x) { return x.id === el.dataset.upMap; })[0]; if (mp) { mp.map = mp.map || {}; mp.map[el.dataset.upKey] = el.value; await save(mp); say(el.value ? 'Gekoppeld aan ' + el.value + ' ✓' : 'Niet meer gekoppeld'); rerender(); } return; }
+    if (!el.dataset || el.dataset.upFile == null || !el.files[0]) return;
     try {
       var f = el.files[0], p = parse(await f.text(), f.name.replace(/\.html?$/i, ''));
       p.id = 'p' + Date.now().toString(36); p.course = el.dataset.upFile; p.at = Date.now();
@@ -289,14 +309,16 @@
     '#uptrain .up-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line,#ddd);background:var(--surface,#fff)}#uptrain .up-foot>.btn:only-of-type{grid-column:1/-1}' +
     '#uptrain .up-foot .btn{min-height:50px}.up-nav{grid-column:1/-1;display:flex;justify-content:space-between}.up-chat .up-steps li{background:rgba(127,127,127,.12)}.up-chat details{margin-top:8px}.up-chat svg{max-width:100%;height:auto}' +
     '@keyframes upin{from{transform:translateY(6px)}to{opacity:1;transform:none}}@media(min-width:760px){#uptrain .up-foot{max-width:712px;width:100%;margin:0 auto;border:0;background:none}}';
-  css.textContent += '.math{font-family:"STIX Two Text","Cambria Math","Cambria","Latin Modern Roman","Times New Roman",serif;font-size:1.08em;letter-spacing:.005em}' +
+  css.textContent += '.up-link{display:flex;align-items:center;gap:8px;margin:6px 0 -2px}.up-link select{min-height:34px;padding:4px 8px;font-size:.85rem;flex:1}' +
+    '#study .up-embed{max-height:52vh;overflow:auto;text-align:left;margin:10px auto 0;width:min(640px,100%);color:var(--ink,#111)}#study .up-embed details{margin-top:4px}#study .up-embed summary{list-style:none;cursor:pointer;display:inline-flex}' +
+    '.math{font-family:"STIX Two Text","Cambria Math","Cambria","Latin Modern Roman","Times New Roman",serif;font-size:1.08em;letter-spacing:.005em}' +
     '.math sub,.math sup{font-size:.68em;line-height:0}.math sup{vertical-align:.55em}.math sub{vertical-align:-.3em}' +
     '.mop{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .15em;line-height:1}.mop .msym{font-size:1.55em;line-height:1}.mop.lim .msym{font-size:1em;font-style:normal}' +
     '.mop .mup,.mop .mlo{font-size:.62em;line-height:1.15;white-space:nowrap}.up-q .math{font-size:1.06em}.up-steps .math{display:inline}';
   document.head.appendChild(css);
   if (!document.querySelector('link[data-stix]')) { var lf = document.createElement('link'); lf.rel = 'stylesheet'; lf.dataset.stix = 1; lf.href = 'https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap'; document.head.appendChild(lf); }
 
-  window.UniPack = { load: load, courseHtml: courseHtml, chatHtml: chatHtml, open: open, get ready() { return ready; }, get packs() { return packs; } };
+  window.UniPack = { studyHtml: studyHtml, load: load, courseHtml: courseHtml, chatHtml: chatHtml, open: open, get ready() { return ready; }, get packs() { return packs; } };
   load().then(function () { if (packs.length) rerender(); setTimeout(pull, 2000); });
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') pull(); });
 })();
