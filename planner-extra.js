@@ -502,7 +502,7 @@ const Roster = { rows: [], at: 0, loading: false };
 function myExams() {
   const T = todayKey();
   return listCourses().filter(c => validDay(c.exam) && c.exam >= T).sort((a, b) => (a.exam + (a.examTime || '')) < (b.exam + (b.examTime || '')) ? -1 : 1)
-    .map(c => ({ n: c.name.slice(0, 60), e: c.emoji, c: c.color, d: c.exam, t: c.examTime || '', k: c.examType || '', p: (c.examPlace || '').slice(0, 80) }));
+    .map(c => ({ n: c.name.slice(0, 120), e: c.emoji, c: c.color, d: c.exam, t: c.examTime || '', k: c.examType || '', p: (c.examPlace || '').slice(0, 80) }));
 }
 async function pushExams() {
   if (!Sync.user || !Sync.sb) return;
@@ -554,7 +554,8 @@ SHEETS.roster = () => {
 ACT['roster-copy'] = async () => { toast(await copyText(rosterText()) ? 'Rooster gekopieerd 📋' : 'Kopiëren lukte niet.'); };
 ACT['roster-share'] = async () => {
   const text = rosterText();
-  try { if (window.UniSend && await UniSend(text)) return; } catch (e) { /* fall back to system share */ }
+  const data = btoa(unescape(encodeURIComponent(JSON.stringify({ ex: myExams() }))));
+  try { if (window.UniSend && await UniSend(text + '\n⟦US:' + data + '⟧')) return; } catch (e) { /* fall back to system share */ }
   try { if (navigator.share) { await navigator.share({ title: 'Mijn examenrooster', text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   toast(await copyText(text) ? 'Rooster gekopieerd — plak het in je chat 📋' : 'Delen lukte niet.');
 };
@@ -689,3 +690,20 @@ setInterval(() => {
     studyRun(false); Study.brk = { end: Date.now() + cfg().pomo.short * 60000 }; beep('done'); drawStudy();
   }
 }, 1000);
+
+// Exams a friend sent in chat: add the ones you ticked to your own roster
+(function importExams() {
+  if (location.hash !== '#import') return;
+  history.replaceState(null, '', location.pathname);
+  let list = []; try { list = JSON.parse(localStorage.getItem('us-import') || '[]'); localStorage.removeItem('us-import'); } catch (e) {}
+  let added = 0, updated = 0;
+  for (const x of list) {
+    if (!x || !x.n || !validDay(x.d)) continue;
+    const same = listCourses().find(c => norm(c.name) === norm(x.n));
+    if (same) { Object.assign(same, { exam: x.d, examTime: x.t || same.examTime, examType: x.k || same.examType, examPlace: x.p || same.examPlace }); put('courses', same); updated++; }
+    else { newCourse({ name: String(x.n).slice(0, 120), emoji: x.e || 'i:book', exam: x.d, examTime: x.t || '', examType: x.k || '', examPlace: x.p || '' }); added++; }
+  }
+  try { Sync.push(); } catch (e) {}
+  view.tab = 'courses'; render();
+  toast(added || updated ? `${added} vak(ken) toegevoegd${updated ? `, ${updated} bijgewerkt` : ''} ✓` : 'Niets toegevoegd', 4000);
+})();

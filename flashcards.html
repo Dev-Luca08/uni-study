@@ -2719,6 +2719,15 @@ const Chat = {
     if (m.kind === 'reminder') {
       return `<div class="msg ${mine ? 'mine' : ''}"><div class="bubble reminder">⏰ ${mine ? 'Je stuurde een herinnering om te studeren' : '@' + esc(who) + ' herinnert je eraan om vandaag te studeren!'}</div>${time}</div>`;
     }
+    const rm = /\n?⟦US:([^⟧]+)⟧/.exec(m.body || '');
+    if (rm) {
+      let ex = []; try { ex = JSON.parse(decodeURIComponent(escape(atob(rm[1])))).ex || []; } catch (e) {}
+      (window.__rx = window.__rx || {})[m.id] = ex;
+      const T = new Date().toISOString().slice(0, 10);
+      return `<div class="msg ${mine ? 'mine' : ''}"><div class="bubble" style="text-align:left"><b>${mine ? 'Je stuurde je examenrooster' : '@' + esc(who) + ' stuurde een examenrooster'}</b>
+        ${mine ? `<p class="small">${ex.map(x => esc(x.n)).join(', ')}</p>` : `<form data-roster-mid="${m.id}" style="display:grid;gap:6px;margin-top:8px">${ex.map((x, i) => `<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" value="${i}" ${x.d >= T ? 'checked' : ''}> <span><b>${esc(x.n)}</b><br><span class="small">${new Date(x.d + 'T12:00').toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' })}${x.t ? ' · ' + esc(x.t) : ''}${x.k ? ' · ' + esc(x.k) : ''}</span></span></label>`).join('')}
+        <button type="button" class="btn primary sm" data-act="roster-import" data-mid="${m.id}">Zet aangeduide in mijn rooster</button></form>`}</div>${time}</div>`;
+    }
     return `<div class="msg ${mine ? 'mine' : ''}"><div class="bubble">${esc(m.body)}</div>${time}</div>`;
   },
   receive(m) {
@@ -3125,6 +3134,13 @@ if (!window.claude) {
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; if (view.name === 'home') render(); });
   window.addEventListener('appinstalled', () => { installPrompt = null; toast('Uni Study is geïnstalleerd'); if (view.name === 'home') render(); });
 }
+ACT['roster-import'] = el => {
+  const f = el.closest('form'); const ex = (window.__rx || {})[el.dataset.mid] || [];
+  const pick = [...f.querySelectorAll('input:checked')].map(i => ex[+i.value]).filter(Boolean);
+  if (!pick.length) { toast('Duid minstens één examen aan'); return; }
+  try { localStorage.setItem('us-import', JSON.stringify(pick)); } catch (e) {}
+  location.href = 'planner.html#import';
+};
 </script>
 <script src="navbar.js"></script>
 </body>
