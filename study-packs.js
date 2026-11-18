@@ -47,6 +47,16 @@
     return t.innerHTML;
   }
 
+  /* ---------- nicer maths: stacked Σ/∏/lim, serif math font, no duplicate "Antwoord" ---------- */
+  function mathify(html) {
+    var h = String(html || '').replace(/^\s*<b>\s*Antwoord\s*<\/b>\s*/i, '');
+    h = h.replace(/([ΣΠ∏∑])\s*<sub>([\s\S]*?)<\/sub>\s*<sup>([\s\S]*?)<\/sup>/g, '<span class="mop"><span class="mup">$3</span><span class="msym">$1</span><span class="mlo">$2</span></span>');
+    h = h.replace(/([ΣΠ∏∑])\s*<sup>([\s\S]*?)<\/sup>\s*<sub>([\s\S]*?)<\/sub>/g, '<span class="mop"><span class="mup">$2</span><span class="msym">$1</span><span class="mlo">$3</span></span>');
+    h = h.replace(/\blim\s*<sub>([\s\S]*?)<\/sub>/g, '<span class="mop lim"><span class="msym">lim</span><span class="mlo">$1</span></span>');
+    h = h.replace(/∫\s*<sub>([\s\S]*?)<\/sub>\s*<sup>([\s\S]*?)<\/sup>/g, '<span class="mop"><span class="mup">$2</span><span class="msym">∫</span><span class="mlo">$1</span></span>');
+    return '<span class="math">' + h + '</span>';
+  }
+
   /* ---------- reading a bundle ---------- */
   function parse(html, fname) {
     var doc = new DOMParser().parseFromString(html, 'text/html'), secs = [];
@@ -101,7 +111,7 @@
           (ch ? '↳ ' + escH(ch.title) + ' · ' : '') + d + '/' + s.items.length + ' gedaan</span></span><span class="up-bar"><i style="width:' + Math.round(100 * d / s.items.length) + '%"></i></span><span aria-hidden="true">›</span></button>';
       }).join('');
       return '<div class="stack"><div class="row" style="align-items:center"><b class="grow">' + (p.kind === 'graf' ? '📈 ' : '✏️ ') + escH(p.name) + '</b><span class="muted small">' + count(p) + (p.kind === 'graf' ? ' grafieken' : ' oefeningen') + '</span></div>' + rows +
-        '<div class="row"><button class="btn sm" data-up-share="' + p.id + '">Stuur naar vriend</button><button class="btn sm danger" data-up-del="' + p.id + '">Verwijder</button></div></div>';
+        '<div class="row">' + (p.srv ? '<span class="tag good">🌐 online voor iedereen</span>' : '<button class="btn sm primary" data-up-pub="' + p.id + '">🌐 Zet online voor iedereen</button>') + '<button class="btn sm" data-up-share="' + p.id + '">Stuur naar vriend</button><button class="btn sm danger" data-up-del="' + p.id + '">Verwijder</button></div></div>';
     }).join('<hr style="border:0;border-top:1px solid var(--line)">');
     return '<section class="card section stack"><div class="section-head"><h2>Oefenen</h2></div>' +
       (list || '<p class="muted small">Laad een oefenbundel of grafiekenbundel (HTML-bestand). Je oefent dan per werkcollege of hoofdstuk, één oefening of grafiek tegelijk, met tussenstappen en antwoord.</p>') +
@@ -123,14 +133,14 @@
     var box = document.getElementById('uptrain'); if (!box || !T) return;
     var it = T.s.items[T.i], id = T.p.id + ':' + T.s.key + ':' + T.i, dm = doneMap(), n = T.s.items.length;
     var d = T.s.items.filter(function (_, k) { return dm[T.p.id + ':' + T.s.key + ':' + k]; }).length;
-    var steps = it.steps.slice(0, T.ans ? it.steps.length : T.shown).map(function (h, k) { return '<li><span class="up-n">' + (k + 1) + '</span><div>' + h + '</div></li>'; }).join('');
+    var steps = it.steps.slice(0, T.ans ? it.steps.length : T.shown).map(function (h, k) { return '<li><span class="up-n">' + (k + 1) + '</span><div>' + mathify(h) + '</div></li>'; }).join('');
     var left = it.steps.length - T.shown;
     box.innerHTML = '<div class="up-top"><button class="up-x" data-up="close" aria-label="Sluiten">✕</button><div class="grow"><b>' + escH(T.s.title) + '</b><div class="up-bar wide"><i style="width:' + Math.round(100 * d / n) + '%"></i></div></div><span class="small muted">' + (T.i + 1) + '/' + n + '</span></div>' +
       '<div class="up-body"><article class="up-card">' +
       '<p class="small muted">' + escH(it.sub || '') + (dm[id] ? ' · <span class="up-ok">✓ gedaan</span>' : '') + '</p>' +
-      '<div class="up-q"><span class="up-nr">' + escH(it.nr) + '</span><div>' + it.q + '</div></div>' +
+      '<div class="up-q"><span class="up-nr">' + escH(it.nr) + '</span><div>' + mathify(it.q) + '</div></div>' +
       (steps ? '<p class="up-lbl">' + (it.graf ? 'Zo teken je het' : 'Tussenstappen') + '</p><ol class="up-steps">' + steps + '</ol>' : '') +
-      (T.ans ? '<div class="up-ans"><p class="up-lbl">' + (it.graf ? 'De grafiek' : 'Antwoord') + '</p>' + (it.ans || '<p class="muted">Geen antwoord in de bundel.</p>') + (it.extra || '') + '</div>' : '') +
+      (T.ans ? '<div class="up-ans"><p class="up-lbl">' + (it.graf ? 'De grafiek' : 'Antwoord') + '</p><div class="up-res">' + (it.graf ? it.ans : mathify(it.ans)) + '</div>' + (it.ans ? '' : '<p class="muted">Geen antwoord in de bundel.</p>') + (it.extra || '') + '</div>' : '') +
       '</article></div>' +
       '<div class="up-foot">' + (!T.ans
         ? (left > 0 ? '<button class="btn" data-up="step">Volgende stap (' + left + ')</button>' : '') + '<button class="btn primary" data-up="ans">' + (it.graf ? 'Toon de grafiek' : 'Toon antwoord') + '</button>'
@@ -178,9 +188,9 @@
     var d = c.d;
     if (c.type === 'UI') {
       var it = d.it || {};
-      return '<p class="small muted">' + escH(d.sec || '') + '</p><div class="up-q"><span class="up-nr">' + escH(it.nr) + '</span><div>' + clean(it.q) + '</div></div>' +
-        '<details><summary>' + (it.graf ? 'Toon hoe je het tekent' : 'Toon tussenstappen en antwoord') + '</summary><ol class="up-steps">' + (it.steps || []).map(function (h, i) { return '<li><span class="up-n">' + (i + 1) + '</span><div>' + clean(h) + '</div></li>'; }).join('') + '</ol>' +
-        '<div class="up-ans">' + clean(it.ans) + clean(it.extra || '') + '</div></details>';
+      return '<p class="small muted">' + escH(d.sec || '') + '</p><div class="up-q"><span class="up-nr">' + escH(it.nr) + '</span><div>' + mathify(clean(it.q)) + '</div></div>' +
+        '<details><summary>' + (it.graf ? 'Toon hoe je het tekent' : 'Toon tussenstappen en antwoord') + '</summary><ol class="up-steps">' + (it.steps || []).map(function (h, i) { return '<li><span class="up-n">' + (i + 1) + '</span><div>' + mathify(clean(h)) + '</div></li>'; }).join('') + '</ol>' +
+        '<div class="up-ans"><div class="up-res">' + (it.graf ? clean(it.ans) : mathify(clean(it.ans))) + '</div>' + clean(it.extra || '') + '</div></details>';
     }
     var n = (d.secs || []).reduce(function (a, s) { return a + (s.items || []).length; }, 0);
     return '<b>' + (mine ? 'Je stuurde een oefenpakket' : '@' + escH(who) + ' stuurt je een oefenpakket') + '</b><p>' + (d.kind === 'graf' ? '📈 ' : '✏️ ') + escH(d.name) + ' · ' + n + (d.kind === 'graf' ? ' grafieken' : ' oefeningen') + '</p>' +
@@ -195,13 +205,52 @@
     if (confirm('Toegevoegd aan je app bij het vak ' + p.course + '. Nu openen in Planning?')) location.href = 'planner.html#courses';
   }
 
+  /* ---------- online: bundles for everyone who is signed in ---------- */
+  function sbc() { return (g('Sync') && g('Sync').sb) || (g('Cloud') && g('Cloud').sb) || null; }
+  async function me() { var s = sbc(); if (!s) return null; var r = await s.auth.getSession(); return r && r.data && r.data.session ? r.data.session.user : null; }
+  function fromData(d) {
+    return { name: String(d.name || 'Oefenpakket').slice(0, 120), kind: d.kind === 'graf' ? 'graf' : 'oef', course: String(d.course || 'Wiskunde').slice(0, 120),
+      secs: (d.secs || []).map(function (s) { return { key: String(s.key).slice(0, 20), title: String(s.title || '').slice(0, 160), items: (s.items || []).map(function (it) { return { nr: String(it.nr || '').slice(0, 20), sub: String(it.sub || '').slice(0, 160), title: it.title, graf: it.graf ? 1 : 0, q: clean(it.q), steps: (it.steps || []).map(clean), ans: clean(it.ans), extra: clean(it.extra || '') }; }) }; }) };
+  }
+  async function publish(id) {
+    var p = packs.filter(function (x) { return x.id === id; })[0], s = sbc(), u = await me();
+    if (!p) return; if (!s || !u) { say('Log eerst in om online te zetten.'); return; }
+    say('Online zetten…');
+    var srv = p.srv || ('k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+    var r = await s.from('study_packs').upsert({ id: srv, course: p.course, name: p.name, kind: p.kind, items: count(p), data: await gz(JSON.stringify({ name: p.name, kind: p.kind, course: p.course, secs: p.secs })), updated_at: new Date().toISOString() });
+    if (r.error) { say('Online zetten lukte niet: ' + r.error.message); return; }
+    p.srv = srv; p.owner = u.id; p.at = Date.now(); await save(p); say('Online ✓ Iedereen die ingelogd is ziet dit nu bij ' + p.course); rerender();
+  }
+  var pulling = false;
+  async function pull() {
+    if (pulling) return; pulling = true;
+    try {
+      var s = sbc(), u = await me(); if (!s || !u) return;
+      var r = await s.from('study_packs').select('id,owner,course,name,kind,items,updated_at'); if (r.error || !r.data) return;
+      var changed = false;
+      for (var i = 0; i < r.data.length; i++) {
+        var row = r.data[i], have = packs.filter(function (x) { return x.srv === row.id; })[0], t = Date.parse(row.updated_at) || 0;
+        if (have && (have.at || 0) >= t) continue;
+        if (have && have.owner === u.id) continue;
+        var full = await s.from('study_packs').select('data').eq('id', row.id).single(); if (full.error) continue;
+        var p = fromData(JSON.parse(await ungz(full.data.data)));
+        p.id = have ? have.id : 's-' + row.id; p.srv = row.id; p.owner = row.owner; p.at = t;
+        await save(p); changed = true;
+      }
+      if (changed) rerender();
+    } catch (e) { /* offline */ } finally { pulling = false; }
+  }
+  async function unpublish(p) { var s = sbc(); if (s && p.srv) await s.from('study_packs').delete().eq('id', p.srv); }
+  function rerender() { var r = g('render'); if (typeof r === 'function' && /planner/.test(location.pathname)) r(); }
+
   /* ---------- clicks ---------- */
   document.addEventListener('click', function (e) {
-    var b = e.target.closest && e.target.closest('[data-up],[data-up-open],[data-up-share],[data-up-del],[data-up-take]'); if (!b) return;
+    var b = e.target.closest && e.target.closest('[data-up],[data-up-open],[data-up-share],[data-up-del],[data-up-take],[data-up-pub]'); if (!b) return;
     if (b.dataset.upOpen) return open(b.dataset.upOpen, b.dataset.upSec);
     if (b.dataset.upShare) return sendPack(b.dataset.upShare);
+    if (b.dataset.upPub) return publish(b.dataset.upPub);
     if (b.dataset.upTake) return take(b.dataset.upTake);
-    if (b.dataset.upDel) { if (confirm('Dit oefenpakket van dit toestel verwijderen?')) remove(b.dataset.upDel).then(function () { var r = g('render'); if (typeof r === 'function') r(); }); return; }
+    if (b.dataset.upDel) { var dp = packs.filter(function (x) { return x.id === b.dataset.upDel; })[0] || {}; me().then(function (u) { var mineOnline = dp.srv && u && dp.owner === u.id; if (!confirm(mineOnline ? 'Dit pakket ook online verwijderen, voor iedereen?' : dp.srv ? 'Dit online pakket komt terug zolang het online staat. Toch van dit toestel verwijderen?' : 'Dit oefenpakket van dit toestel verwijderen?')) return; (mineOnline ? unpublish(dp) : Promise.resolve()).then(function () { return remove(b.dataset.upDel); }).then(rerender); }); return; }
     var a = b.dataset.up; if (!T) return;
     if (a === 'close') close();
     else if (a === 'step') { T.shown++; draw(); }
@@ -235,13 +284,19 @@
     '.up-lbl{margin:4px 0 0;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#667)}' +
     '.up-steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}.up-steps li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--bg,#f6f6f8);line-height:1.5;animation:upin .25s ease}' +
     '.up-n{flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent,#1F3FB5);color:#fff;font-size:.78rem;font-weight:800;display:grid;place-items:center}' +
-    '.up-ans{padding:14px;border-radius:14px;border:2px solid var(--accent,#1F3FB5);display:grid;gap:8px;line-height:1.55;animation:upin .25s ease}.up-ans b:first-child{color:var(--accent,#1F3FB5)}.up-ans figure{margin:0}.up-ans svg{max-width:100%;height:auto;color:var(--ink,#111)}' +
+    '.up-ans{padding:14px 16px;border-radius:14px;border:2px solid var(--accent,#1F3FB5);display:block;line-height:1.6;animation:upin .25s ease}.up-ans>*+*{margin-top:10px}.up-res{font-size:1.12rem}.up-ans figure{margin:0}.up-ans svg{max-width:100%;height:auto;color:var(--ink,#111)}' +
     '.up-ans .pit,.up-ans .exam{margin:0;padding:10px 12px;border-radius:12px;background:var(--accent-soft,#e1e7fa)}.up-ok{color:#2a8a4a;font-weight:700}' +
     '#uptrain .up-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line,#ddd);background:var(--surface,#fff)}#uptrain .up-foot>.btn:only-of-type{grid-column:1/-1}' +
     '#uptrain .up-foot .btn{min-height:50px}.up-nav{grid-column:1/-1;display:flex;justify-content:space-between}.up-chat .up-steps li{background:rgba(127,127,127,.12)}.up-chat details{margin-top:8px}.up-chat svg{max-width:100%;height:auto}' +
     '@keyframes upin{from{transform:translateY(6px)}to{opacity:1;transform:none}}@media(min-width:760px){#uptrain .up-foot{max-width:712px;width:100%;margin:0 auto;border:0;background:none}}';
+  css.textContent += '.math{font-family:"STIX Two Text","Cambria Math","Cambria","Latin Modern Roman","Times New Roman",serif;font-size:1.08em;letter-spacing:.005em}' +
+    '.math sub,.math sup{font-size:.68em;line-height:0}.math sup{vertical-align:.55em}.math sub{vertical-align:-.3em}' +
+    '.mop{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .15em;line-height:1}.mop .msym{font-size:1.55em;line-height:1}.mop.lim .msym{font-size:1em;font-style:normal}' +
+    '.mop .mup,.mop .mlo{font-size:.62em;line-height:1.15;white-space:nowrap}.up-q .math{font-size:1.06em}.up-steps .math{display:inline}';
   document.head.appendChild(css);
+  if (!document.querySelector('link[data-stix]')) { var lf = document.createElement('link'); lf.rel = 'stylesheet'; lf.dataset.stix = 1; lf.href = 'https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap'; document.head.appendChild(lf); }
 
   window.UniPack = { load: load, courseHtml: courseHtml, chatHtml: chatHtml, open: open, get ready() { return ready; }, get packs() { return packs; } };
-  load().then(function () { if (packs.length) { var r = g('render'); if (typeof r === 'function' && /planner/.test(location.pathname)) r(); } });
+  load().then(function () { if (packs.length) rerender(); setTimeout(pull, 2000); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') pull(); });
 })();
