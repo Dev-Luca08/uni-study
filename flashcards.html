@@ -2719,6 +2719,7 @@ const Chat = {
     if (m.kind === 'reminder') {
       return `<div class="msg ${mine ? 'mine' : ''}"><div class="bubble reminder">⏰ ${mine ? 'Je stuurde een herinnering om te studeren' : '@' + esc(who) + ' herinnert je eraan om vandaag te studeren!'}</div>${time}</div>`;
     }
+    if (window.UniPack) { const ph = UniPack.chatHtml(m, mine, who, time); if (ph) return ph; }
     const rm = /\n?⟦US:([^⟧]+)⟧/.exec(m.body || '');
     if (rm) {
       let ex = []; try { ex = JSON.parse(decodeURIComponent(escape(atob(rm[1])))).ex || []; } catch (e) {}
@@ -3142,6 +3143,7 @@ ACT['roster-import'] = el => {
   location.href = 'planner.html#import';
 };
 </script>
+<script src="study-packs.js"></script>
 <script src="navbar.js"></script>
 </body>
 </html>

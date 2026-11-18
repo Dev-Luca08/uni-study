@@ -107,7 +107,7 @@
     var ids = fs.map(function (f) { return f.requester === me.id ? f.addressee : f.requester; });
     var names = {}; if (ids.length) ((await sb.from('profiles').select('id,username').in('id', ids)).data || []).forEach(function (p) { names[p.id] = p.username; });
     var box = document.createElement('div'); box.id = 'unisend';
-    box.innerHTML = '<div class="us-in"><b>Stuur naar een vriend</b><pre>' + escH(text.slice(0, 400)) + (text.length > 400 ? '…' : '') + '</pre>' +
+    box.innerHTML = '<div class="us-in"><b>Stuur naar een vriend</b><pre>' + escH(text.replace(/\n?⟦[^⟧]*⟧/g, '').slice(0, 400)) + '</pre>' +
       (ids.length ? ids.map(function (id) { return '<button data-uid="' + id + '">@' + escH(names[id] || 'vriend') + '</button>'; }).join('') : '<p>Nog geen vrienden. Voeg ze toe bij Vrienden.</p>') +
       '<button data-x="1" class="us-x">Sluiten</button></div>';
     document.body.appendChild(box);

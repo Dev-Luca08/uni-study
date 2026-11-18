@@ -525,6 +525,7 @@ function renderCourse(c) {
       <div class="chapters">${p.chs.map((ch, i) => chapterRow(c, ch, i, p.chs.length)).join('') || '<p class="muted small">Nog geen hoofdstukken.</p>'}</div>
       <div class="row section"><button class="btn sm primary" data-act="chapter-new" data-course="${c.id}">+ Hoofdstuk</button><button class="btn sm" data-act="upload" data-course="${c.id}">📄 Bestanden uploaden</button><button class="btn sm" data-act="bulk" data-course="${c.id}">⚡ Meerdere tegelijk</button></div>
     </section>
+    ${window.UniPack ? UniPack.courseHtml(c) : ''}
     ${courseFlashHtml(c)}
     ${coursePlanForm(c)}
     <section class="card section stack"><h2>📝 Notities</h2><textarea class="field" data-change="course-notes" data-id="${c.id}" placeholder="Tips van de prof, examenvragen van vorig jaar, wat je zeker moet kennen …">${esc(c.notes || '')}</textarea></section>
