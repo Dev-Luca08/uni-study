@@ -49,9 +49,8 @@ function header() {
       <div class="brand"><span class="logo" aria-hidden="true">${icon('logo')}</span><div><b>Uni Study</b><small>Planning · ${esc(who)}</small></div></div>
       <div class="top-actions"><span class="sync-dot ${st}" title="${esc(tip)}" role="img" aria-label="${esc(tip)}"></span>
         <button class="icon-btn" data-act="look" aria-label="Personaliseren" title="Personaliseren">${icon('palette')}</button>
-        <button class="icon-btn" data-act="settings" aria-label="Instellingen" title="Instellingen">${icon('gear')}</button></div>
+        <button class="icon-btn" data-act="tab" data-tab="more" aria-label="Meer: kalender, timer, statistieken" title="Meer">${icon('gear')}</button></div>
     </header>
-    <nav class="app-switch" aria-label="Kies onderdeel" style="grid-template-columns:auto 1fr 1fr"><a href="index.html" aria-label="Menu" style="padding:0 12px">${icon('logo')}</a><span class="on" aria-current="page">${icon('plan')} Planning</span><a href="flashcards.html">${icon('cards')} Flashcards</a></nav>
     ${miniTimer()}`;
 }
 const TABS = [['today', 'today', 'Vandaag'], ['courses', 'book', 'Vakken'], ['more', 'gear', 'Meer']];
@@ -75,7 +74,8 @@ function render() {
     main = `<div class="card stack"><p>Oei, er ging iets mis bij het tonen van dit scherm.</p><button class="btn sm" data-act="tab" data-tab="today">Terug naar vandaag</button></div>`;
   }
   if (SUB_TABS.includes(t)) main = `<button class="btn sm ghost" data-act="tab" data-tab="more" style="margin-bottom:6px">← Meer</button>` + main;
-  app.innerHTML = header() + `<main id="main">${main}</main><footer class="footer">Made by <b>Luca Cicarelli</b> · Uni Study</footer>` + tabsBar();
+  app.innerHTML = header() + `<main id="main">${main}</main><footer class="footer">Made by <b>Luca Cicarelli</b> · Uni Study</footer>`;
+  if (window.UniBar) UniBar.draw();
   if (t === 'today') setTimeout(snapshotPlan, 0);
 }
 function openSheet(kind, data = {}) { sheet = Object.assign({ kind }, data); drawSheet(); const s = document.querySelector('#sheet .sheet'); if (s) s.scrollTop = 0; }

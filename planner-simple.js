@@ -89,7 +89,7 @@ SHEETS.wizard = () => {
   const files = (s.files || []).filter(f => !f.err);
   if (s.step === 1) return sheetHead('Nieuw vak') + steps + `<form class="form" data-form="wiz">
       <p class="bigq">Welk vak?</p>
-      <input class="field" name="name" value="${esc(s.name || '')}" required maxlength="60" placeholder="bv. Wiskunde" autofocus>
+      <input class="field" name="name" value="${esc(s.name || '')}" required maxlength="120" placeholder="Exacte naam, bv. Algemene Economie 1" autofocus>
       <div class="suggest">${SUGGEST.slice(0, 10).map(([n, e]) => `<button type="button" class="sug" data-act="wiz-pick" data-name="${esc(n)}" data-emoji="${e}">${emoHtml(e)} ${esc(n)}</button>`).join('')}</div>
       <label class="btn block">${icon('upload')} Of upload je cursus, dan vul ik alles in<input type="file" hidden data-change="wiz-file" accept=".pdf,.pptx,.ppsx,.docx,.odt,.odp"></label>
       <div class="sheet-foot"><button type="button" class="btn" data-act="sheet-close">Annuleren</button><button class="btn primary">Volgende</button></div></form>`;
@@ -112,7 +112,7 @@ SHEETS.wizard = () => {
       <div class="sheet-foot"><button type="button" class="btn" data-act="wiz-back">Terug</button><button class="btn primary">Maak mijn planning</button></div></form>`;
 };
 function wizKeep() { const f = document.querySelector('#sheet form[data-form="wiz"]'); if (f && sheet && sheet.kind === 'wizard') Object.assign(sheet, harvest(f)); }
-ACT['wiz-pick'] = el => { wizKeep(); sheet.name = el.dataset.name; sheet.emoji = el.dataset.emoji; sheet.step = 2; redrawSheet(); };
+ACT['wiz-pick'] = el => { wizKeep(); sheet.name = el.dataset.name; sheet.emoji = el.dataset.emoji; redrawSheet(); setTimeout(() => { const i = document.querySelector('#sheet input[name=name]'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 30); };
 ACT['wiz-back'] = () => { wizKeep(); sheet.step = Math.max(1, sheet.step - 1); redrawSheet(); };
 CHANGE['wiz-file'] = async el => {
   const list = [...el.files]; if (!list.length) return;
@@ -122,13 +122,13 @@ CHANGE['wiz-file'] = async el => {
   }
   sheet.busy = false;
   const ok = sheet.files.filter(f => !f.err);
-  if (sheet.step === 1 && ok.length) { if (!String(sheet.name || '').trim()) sheet.name = ok[0].title.slice(0, 60); sheet.step = 2; }
+  if (sheet.step === 1 && ok.length) { if (!String(sheet.name || '').trim()) sheet.name = ok[0].title.slice(0, 120); sheet.step = 2; }
   redrawSheet();
 };
 FORMS.wiz = f => {
   Object.assign(sheet, harvest(f));
   const s = sheet;
-  if (s.step === 1) { if (!String(s.name || '').trim()) return; s.name = s.name.trim().slice(0, 60); s.step = 2; redrawSheet(); return; }
+  if (s.step === 1) { if (!String(s.name || '').trim()) return; s.name = s.name.trim().slice(0, 120); s.step = 2; redrawSheet(); return; }
   if (s.step === 2) { s.exam = validDay(s.exam) ? s.exam : ''; s.step = 3; redrawSheet(); return; }
   const sug = SUGGEST.find(([n]) => norm(n) === norm(s.name));
   const c = newCourse({ name: s.name, emoji: s.emoji || (sug ? sug[1] : 'i:book'), exam: s.exam || '' });

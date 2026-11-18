@@ -538,22 +538,23 @@ function rosterText() {
 SHEETS.roster = () => {
   const mine = myExams(), T = todayKey();
   const friends = Roster.rows.map(r => ({ name: Social.names[r.user_id] || 'vriend', ex: r.exams.filter(x => x && validDay(x.d) && x.d >= T).sort((a, b) => a.d < b.d ? -1 : 1) })).filter(f => f.ex.length).sort((a, b) => a.name.localeCompare(b.name));
-  return sheetHead('🎓 Examenroosters') + `<div class="stack">
-    <section class="card flat stack"><h3>Mijn examens</h3>
+  const share = Sync.user ? `<label class="toggle-row"><span><b>Deel met vrienden</b></span><span class="switch"><input type="checkbox" ${cfg().shareExams ? 'checked' : ''} data-change="share-exams" aria-label="Deel mijn examenrooster met vrienden"><i></i></span></label>` : `<a class="btn sm" href="flashcards.html#auth" style="justify-self:start">Log in om te delen</a>`;
+  return sheetHead('Examenroosters') + `<div class="stack">
+    <section class="stack"><h3>Mijn examens</h3>
       ${mine.length ? `<div class="sessions">${mine.map(x => examLine(x)).join('')}</div>` : '<p class="muted small">Nog geen examens. Zet een examendatum bij je vakken.</p>'}
-      ${Sync.user ? `<div class="toggle-row"><div><b>Deel met mijn vrienden</b><p class="help">Je vrienden zien je vakken met datum, uur, soort en locatie. Niets anders.</p></div><span class="switch"><input type="checkbox" ${cfg().shareExams ? 'checked' : ''} data-change="share-exams" aria-label="Deel mijn examenrooster met vrienden"><i></i></span></div>` : `<p class="help">Log in om je rooster met vrienden in de app te delen.</p><a class="btn sm" href="flashcards.html#auth" style="justify-self:start">Inloggen</a>`}
-      ${mine.length ? `<div class="row"><button class="btn sm primary" data-act="roster-share">📤 Stuur als bericht</button><button class="btn sm" data-act="roster-copy">📋 Kopieer</button><button class="btn sm" data-act="ics-all">📆 Agenda (.ics)</button></div>` : ''}
+      ${share}
+      ${mine.length ? `<details><summary class="btn sm" style="justify-self:start">Delen of exporteren</summary><div class="row" style="margin-top:8px"><button class="btn sm" data-act="roster-share">Stuur naar vriend</button><button class="btn sm" data-act="roster-copy">Kopieer</button><button class="btn sm" data-act="ics-all">Agenda (.ics)</button></div></details>` : ''}
     </section>
-    <section class="stack"><h3>Van mijn vrienden</h3>
-      ${!Sync.user ? '<p class="muted small">Log in om de roosters van je vrienden te zien.</p>' : Roster.loading && !Roster.at ? '<p class="muted small">Laden… ⏳</p>'
-      : friends.length ? friends.map(f => `<div class="card flat stack"><div class="friend">${avatarHtml(f.name)}<b class="grow">@${esc(f.name)}</b><span class="muted small">${plural(f.ex.length, 'examen', 'examens')}</span></div><div class="sessions">${f.ex.map(x => examLine(x, mine)).join('')}</div></div>`).join('')
-      : '<p class="muted small">Nog geen vrienden die hun rooster delen. Vraag hen om bij 🎓 Examenroosters "Deel met mijn vrienden" aan te zetten. Vrienden toevoegen doe je in Flashcards.</p>'}
-    </section></div>`;
-};
-ACT.roster = () => { openSheet('roster'); loadRoster(true); };
+    ${Sync.user ? `<section class="stack"><h3>Vrienden</h3>
+      ${Roster.loading && !Roster.at ? '<p class="muted small">Laden…</p>'
+      : friends.length ? friends.map(f => `<details class="card flat"><summary class="friend">${avatarHtml(f.name)}<b class="grow">@${esc(f.name)}</b><span class="muted small">${plural(f.ex.length, 'examen', 'examens')}</span></summary><div class="sessions" style="margin-top:8px">${f.ex.map(x => examLine(x, mine)).join('')}</div></details>`).join('')
+      : '<p class="muted small">Nog geen vrienden die hun rooster delen.</p>'}
+    </section>` : ''}</div>`;
+};ACT.roster = () => { openSheet('roster'); loadRoster(true); };
 ACT['roster-copy'] = async () => { toast(await copyText(rosterText()) ? 'Rooster gekopieerd 📋' : 'Kopiëren lukte niet.'); };
 ACT['roster-share'] = async () => {
   const text = rosterText();
+  try { if (window.UniSend && await UniSend(text)) return; } catch (e) { /* fall back to system share */ }
   try { if (navigator.share) { await navigator.share({ title: 'Mijn examenrooster', text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   toast(await copyText(text) ? 'Rooster gekopieerd — plak het in je chat 📋' : 'Delen lukte niet.');
 };
