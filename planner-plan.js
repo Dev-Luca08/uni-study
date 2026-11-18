@@ -129,7 +129,9 @@ function planCourse(c, T, doneToday, push) {
   if (!isFinite(lambda)) { r.feasible = false; r.noTime = true; lambda = 1.5; }
   r.need = lambda;
   if (lambda > 1.001) r.feasible = false;
-  const rate = lambda * (c.priority === 'hoog' ? 1.2 : 1);
+  // a bit ahead of schedule (10% buffer), more for hard or important courses, never more than your daily time
+  const mult = (c.priority === 'hoog' ? 1.2 : 1) * (1 + 0.06 * ((num(c.difficulty, 3) || 3) - 3));
+  const rate = lambda <= 1 ? Math.min(1, Math.max(lambda, lambda * mult * 1.1)) : lambda * mult;
   r.rate = rate;
 
   /* ---- walk through the days ---- */

@@ -546,3 +546,5 @@ table.grades td.n { text-align: right; font-variant-numeric: tabular-nums; }
 #study .fa { background: var(--again-soft); color: var(--again); border-color: transparent; }
 #study .fh { background: var(--hard-soft); color: var(--hard); border-color: transparent; }
 #study .fg { background: var(--good-soft); color: var(--good); border-color: transparent; }
+
+.more-box>summary{cursor:pointer;list-style:none;padding:4px 0}.more-box>summary::after{content:' ›';color:var(--muted)}.more-box[open]>summary::after{content:' ⌄'}.more-box>.card{box-shadow:none;border:0;padding:12px 0 0}

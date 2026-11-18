@@ -30,7 +30,7 @@ function renderToday() {
     hero = `<section class="now" style="${cc(c)}"><span class="k">Nu doen</span>
         <div class="row" style="gap:12px;flex-wrap:nowrap"><span class="cc-emoji" style="background:var(--surface)">${c ? emo(c) : icon('book')}</span><div class="grow"><h2>${t.title}</h2><p class="muted">${c ? esc(c.name) + ' · ' : ''}${t.meta} · ±${fmtMin(next.min * (1 - itemFrac(next)))}</p></div></div>
         <button class="btn primary block" data-act="study-go" data-key="${esc(next.key)}">${icon('play')} Begin</button>
-        <div class="row"><button class="btn sm grow" data-act="quick">${icon('timer')} Ik heb maar weinig tijd</button><button class="btn sm" data-act="item-menu" data-key="${esc(next.key)}">Andere opties</button></div>
+        <p class="small" style="text-align:center;margin:0"><button class="link-btn" data-act="quick">Weinig tijd?</button> · <button class="link-btn" data-act="item-menu" data-key="${esc(next.key)}">Andere opties</button></p>
       </section>`;
   } else if (items.length) {
     hero = `<section class="now"><span class="k">Vandaag</span><h2>Alles gedaan voor vandaag</h2><p class="muted">Goed bezig. Morgen staat het volgende stuk klaar.</p></section>`;
@@ -45,8 +45,8 @@ function renderToday() {
     ${nowCard()}
     ${alertsHtml(shown)}${alerts.length > 1 ? `<p class="small" style="margin-top:8px"><button class="link-btn" data-act="alerts-all">${view.allAlerts ? 'Minder meldingen' : `Nog ${alerts.length - 1} ${alerts.length === 2 ? 'melding' : 'meldingen'}`}</button></p>` : ''}
     ${wday(T) === 6 ? `<button class="btn block soft section" data-act="week">${icon('stats')} Bekijk je weekoverzicht</button>` : ''}
-    ${rest.length ? `<section class="section"><div class="section-head"><h2>${next ? 'Daarna vandaag' : 'Vandaag'}</h2></div>${tasksHtml(rest)}</section>` : ''}
-    <div class="add-row"><button class="btn" data-act="task-new">+ Eigen taak</button><button class="btn" data-act="course-new-simple">+ Vak</button></div>
+    ${rest.length ? `<section class="section"><div class="section-head"><h2>${next ? 'Daarna vandaag' : 'Vandaag'}</h2></div>${tasksHtml(view.allRest ? rest : rest.slice(0, 3))}${rest.length > 3 ? `<p class="small" style="margin-top:8px"><button class="link-btn" data-act="rest-all">${view.allRest ? 'Toon minder' : 'Toon alle ' + rest.length}</button></p>` : ''}</section>` : ''}
+    <p class="small muted" style="text-align:center;margin:14px 0"><button class="link-btn" data-act="task-new">+ Eigen taak</button> · <button class="link-btn" data-act="course-new-simple">+ Vak</button></p>
     ${examChips()}
     ${friendsCard()}`;
 }
@@ -62,6 +62,7 @@ function renderWelcome() {
 Object.assign(ACT, {
   'exam-all'() { view.examAll = !view.examAll; render(); },
   'alerts-all'() { view.allAlerts = !view.allAlerts; render(); },
+  'rest-all'() { view.allRest = !view.allRest; render(); },
   'course-new-simple'() { openSheet('wizard', { step: 1, files: [] }); },
   wizard() { openSheet('wizard', { step: 1, files: [] }); },
   'course-new'() { openSheet('wizard', { step: 1, files: [] }); }

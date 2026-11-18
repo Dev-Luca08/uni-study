@@ -527,9 +527,9 @@ function renderCourse(c) {
     </section>
     ${window.UniPack ? UniPack.courseHtml(c) : ''}
     ${courseFlashHtml(c)}
-    ${coursePlanForm(c)}
+    <details class="card section more-box"><summary><b>Instellingen, notities en meer</b></summary>${coursePlanForm(c)}
     <section class="card section stack"><h2>📝 Notities</h2><textarea class="field" data-change="course-notes" data-id="${c.id}" placeholder="Tips van de prof, examenvragen van vorig jaar, wat je zeker moet kennen …">${esc(c.notes || '')}</textarea></section>
-    <section class="section row">${c.archived ? `<button class="btn sm" data-act="unarchive" data-id="${c.id}">↩️ Uit archief halen</button>` : `<button class="btn sm" data-act="grade" data-id="${c.id}">🎓 Resultaat / archiveren</button>`}<button class="btn sm danger" data-act="course-del" data-id="${c.id}">🗑 Vak verwijderen</button></section>`;
+    <section class="section row">${c.archived ? `<button class="btn sm" data-act="unarchive" data-id="${c.id}">↩️ Uit archief halen</button>` : `<button class="btn sm" data-act="grade" data-id="${c.id}">🎓 Resultaat / archiveren</button>`}<button class="btn sm danger" data-act="course-del" data-id="${c.id}">🗑 Vak verwijderen</button></section></details>`;
 }
 function chapterRow(c, ch, i, n) {
   const st = chStatus(ch), tot = studyTotal(ch);
