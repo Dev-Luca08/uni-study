@@ -707,3 +707,22 @@ setInterval(() => {
   view.tab = 'courses'; render();
   toast(added || updated ? `${added} vak(ken) toegevoegd${updated ? `, ${updated} bijgewerkt` : ''} ✓` : 'Niets toegevoegd', 4000);
 })();
+// A link like planner.html#addcourse=… fills a course with chapters, exercises and graphs in one go
+(function addCourseFromLink() {
+  const m = /^#addcourse=(.+)$/.exec(location.hash); if (!m) return;
+  history.replaceState(null, '', location.pathname);
+  let d; try { d = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1]))))); } catch (e) { toast('Deze link klopt niet.'); return; }
+  let c = listCourses().find(x => norm(x.name) === norm(d.name)) || listCourses().find(x => norm(x.name).startsWith(norm(d.name)));
+  if (!c) c = newCourse({ name: String(d.name).slice(0, 120) });
+  const have = new Set(chaptersOf(c.id).map(ch => norm(ch.title)));
+  let n = 0;
+  for (const x of d.ch || []) {
+    if (have.has(norm(x.t))) continue;
+    newChapter(c.id, { title: String(x.t).slice(0, 120), unit: x.u || 'p', pages: Math.max(0, x.n | 0), kind: x.k || 'theorie', mpu: x.m || null }); n++;
+  }
+  if (d.minPerPage) c.minPerPage = d.minPerPage;
+  put('courses', c);
+  try { commit(); } catch (e) { try { Sync.push(); } catch (e2) {} }
+  view = { tab: 'courses', course: c.id }; render();
+  toast(n ? `${n} onderdelen toegevoegd aan ${c.name} ✓` : 'Alles stond er al in', 5000);
+})();
