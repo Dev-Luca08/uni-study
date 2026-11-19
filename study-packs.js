@@ -245,6 +245,22 @@
     return '';
   }
 
+  /* ---------- Flashcards tab: the same cards of your courses, one place of truth ---------- */
+  function flashHomeHtml() {
+    var fc = packs.filter(function (p) { return p.kind === 'fc'; }); if (!fc.length) return '';
+    var dm = doneMap(), byCourse = {};
+    fc.forEach(function (p) { (byCourse[p.course] = byCourse[p.course] || []).push(p); });
+    return Object.keys(byCourse).map(function (cn) {
+      var rows = [];
+      byCourse[cn].forEach(function (p) { p.secs.forEach(function (s) { rows.push({ p: p, s: s, k: parseInt(s.key.slice(1), 10) || 999 }); }); });
+      rows.sort(function (a, b) { return a.k - b.k || (a.p.label === 'formules') - (b.p.label === 'formules'); });
+      return '<p class="section-title">📚 ' + escH(cn) + ' · kaarten uit je vak</p><section class="uph">' + rows.map(function (r) {
+        var d = r.s.items.filter(function (_, i) { return dm[r.p.id + ':' + r.s.key + ':' + i]; }).length;
+        return '<button class="up-row" data-up-open="' + r.p.id + '" data-up-sec="' + r.s.key + '"><span class="grow"><b>' + escH(r.s.key.toUpperCase()) + ' ' + escH(r.p.label || 'kaarten') + '</b><br><span class="small muted">' + d + '/' + r.s.items.length + ' gekend</span></span><span class="up-bar"><i style="width:' + Math.round(100 * d / r.s.items.length) + '%"></i></span><span aria-hidden="true">›</span></button>';
+      }).join('') + '</section>';
+    }).join('');
+  }
+
   /* ---------- trainer ---------- */
   var T = null;
   function open(packId, key, i) {
@@ -399,7 +415,7 @@
     } catch (e) { /* offline */ } finally { pulling = false; }
   }
   async function unpublish(p) { var s = sbc(); if (s && p.srv) await s.from('study_packs').delete().eq('id', p.srv); }
-  function rerender() { var r = g('render'); if (typeof r === 'function' && /planner/.test(location.pathname)) r(); }
+  function rerender() { var r = g('render'); if (typeof r === 'function') { var v = g('view'); if (/planner/.test(location.pathname) || (v && v.name === 'home')) r(); } }
 
   /* ---------- clicks ---------- */
   document.addEventListener('click', function (e) {
@@ -453,7 +469,8 @@
     '#uptrain .up-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line,#ddd);background:var(--surface,#fff)}#uptrain .up-foot>.btn:only-of-type{grid-column:1/-1}' +
     '#uptrain .up-foot .btn{min-height:50px}.up-nav{grid-column:1/-1;display:flex;justify-content:space-between}.up-chat .up-steps li{background:rgba(127,127,127,.12)}.up-chat details{margin-top:8px}.up-chat svg{max-width:100%;height:auto}' +
     '@keyframes upin{from{transform:translateY(6px)}to{opacity:1;transform:none}}@media(min-width:760px){#uptrain .up-foot{max-width:712px;width:100%;margin:0 auto;border:0;background:none}}';
-  css.textContent += '#study .up-card.fc{text-align:center}.fc-term{font-size:1.5rem;padding:14px 4px}' +
+  css.textContent += '.uph{display:grid;gap:8px;margin:0 0 16px}.uph .up-row{display:flex!important;align-items:center;gap:10px;height:auto!important;min-height:58px;width:100%;text-align:left;white-space:normal;line-height:1.3}.uph .grow{flex:1;min-width:0}.uph .small{font-size:.82rem}.uph .muted{opacity:.7}' +
+    '#study .up-card.fc{text-align:center}.fc-term{font-size:1.5rem;padding:14px 4px}' +
     '.up-link{display:flex;align-items:center;gap:8px;margin:6px 0 -2px}.up-link select{min-height:34px;padding:4px 8px;font-size:.85rem;flex:1}' +
     '#study .up-embed{max-height:52vh;overflow:auto;text-align:left;margin:10px auto 0;width:min(640px,100%);color:var(--ink,#111)}#study .up-embed details{margin-top:4px}#study .up-embed summary{list-style:none;cursor:pointer;display:inline-flex}' +
     '.meq{display:inline-block;padding-left:1.4em}.fc .up-res,.fc .pit{text-align:left}.up-res .math{line-height:2}' +
@@ -465,7 +482,7 @@
   document.head.appendChild(css);
   if (!document.querySelector('link[data-stix]')) { var lf = document.createElement('link'); lf.rel = 'stylesheet'; lf.dataset.stix = 1; lf.href = 'https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap'; document.head.appendChild(lf); }
 
-  window.UniPack = { studyHtml: studyHtml, load: load, courseHtml: courseHtml, chatHtml: chatHtml, open: open, get ready() { return ready; }, get packs() { return packs; } };
+  window.UniPack = { flashHomeHtml: flashHomeHtml, studyHtml: studyHtml, load: load, courseHtml: courseHtml, chatHtml: chatHtml, open: open, get ready() { return ready; }, get packs() { return packs; } };
   load().then(function () { if (/planner/.test(location.pathname)) importCourse(); if (packs.length) rerender(); setTimeout(pull, 2000); });
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') pull(); });
 })();

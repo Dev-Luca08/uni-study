@@ -1373,6 +1373,7 @@ function renderHome() {
     </div>
     ${installHint()}
     ${view.newFolder ? newFolderForm() : ''}
+    ${window.UniPack ? UniPack.flashHomeHtml() : ''}
     ${main}
     <div class="backup-row">
       <button class="btn ghost sm" data-act="backup">Back-up maken</button>
