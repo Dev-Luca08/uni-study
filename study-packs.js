@@ -154,7 +154,7 @@
       return '<div class="stack"><div class="row" style="align-items:center"><b class="grow">' + (p.kind === 'graf' ? '📈 ' : '✏️ ') + escH(p.name) + '</b><span class="muted small">' + count(p) + (p.kind === 'graf' ? ' grafieken' : ' oefeningen') + '</span></div>' + rows +
         '<div class="row">' + (p.srv ? '<span class="tag good">🌐 online voor iedereen</span>' : '<button class="btn sm primary" data-up-pub="' + p.id + '">🌐 Zet online voor iedereen</button>') + '<button class="btn sm" data-up-share="' + p.id + '">Stuur naar vriend</button><button class="btn sm danger" data-up-del="' + p.id + '">Verwijder</button></div></div>';
     }).join('<hr style="border:0;border-top:1px solid var(--line)">');
-    return '<section class="card section stack"><div class="section-head"><h2>Oefenen</h2></div>' +
+    return '<section class="card section stack"><div class="section-head"><h2>Oefenen</h2><button class="btn sm" data-up-sendc="' + escH(c.name) + '">📤 Stuur heel dit vak</button></div>' +
       (list || '<p class="muted small">Laad een oefenbundel of grafiekenbundel (HTML-bestand). Je oefent dan per werkcollege of hoofdstuk, één oefening of grafiek tegelijk, met tussenstappen en antwoord.</p>') +
       '<label class="btn sm" style="justify-self:start">📚 Oefenbundel, grafieken of flashcards toevoegen<input type="file" accept=".html,.htm,text/html,.xlsx,.xls,.csv,.ods" hidden data-up-file="' + escH(c.name) + '"></label></section>';
   }
@@ -233,10 +233,40 @@
     await UniSend('Oefenpakket: ' + p.name + ' (' + count(p) + ')\n⟦UP:' + await gz(JSON.stringify({ name: p.name, kind: p.kind, course: p.course, secs: p.secs })) + '⟧');
   }
 
+  /* ---------- send a whole course (chapters, exam, settings); its online bundles and PDFs come along by course name ---------- */
+  async function sendCourse(name) {
+    var c = coursesByName(name)[0], chs = g('chaptersOf'); if (!c || !chs || !window.UniSend) return;
+    var keepC = ['name', 'emoji', 'color', 'exam', 'examTime', 'examType', 'examPlace', 'difficulty', 'priority', 'minPerPage', 'minPerSlide', 'credits', 'prof', 'semester'], keepH = ['title', 'unit', 'pages', 'kind', 'difficulty', 'mpu', 'needSummary', 'srcPages', 'order'];
+    var d = { course: {}, chapters: chs(c.id).map(function (h) { var o = {}; keepH.forEach(function (k) { if (h[k] != null && h[k] !== '') o[k] = h[k]; }); return o; }) };
+    keepC.forEach(function (k) { if (c[k] != null && c[k] !== '') d.course[k] = c[k]; });
+    var local = packs.filter(function (p) { return nrm(p.course) === nrm(c.name) && !p.srv; }).length;
+    if (local && !confirm('Let op: ' + local + ' bundel(s) van dit vak staan nog niet online, die krijgt je vriend niet mee. Toch versturen?')) return;
+    await UniSend('Vak: ' + c.name + ' (' + d.chapters.length + ' onderdelen)\n⟦UC:' + await gz(JSON.stringify(d)) + '⟧');
+  }
+  function importCourse() {
+    if (location.hash !== '#importcourse') return;
+    history.replaceState(null, '', location.pathname);
+    var d; try { d = JSON.parse(localStorage.getItem('us-import-course') || 'null'); localStorage.removeItem('us-import-course'); } catch (e) {}
+    var nc = g('newCourse'), nh = g('newChapter'), chs = g('chaptersOf'), cm = g('commit'), put = g('put'), vw = g('view');
+    if (!d || !d.course || !nc) return;
+    var name = String(d.course.name || 'Vak').slice(0, 120), c = coursesByName(name)[0], added = 0;
+    if (!c) { var o = {}; Object.keys(d.course).forEach(function (k) { o[k] = typeof d.course[k] === 'string' ? d.course[k].slice(0, 160) : d.course[k]; }); o.name = name; c = nc(o); }
+    else if (!c.exam && d.course.exam) { c.exam = d.course.exam; put('courses', c); }
+    var have = {}; chs(c.id).forEach(function (h) { have[nrm(h.title)] = 1; });
+    (d.chapters || []).slice(0, 300).forEach(function (h) {
+      if (!h.title || have[nrm(h.title)]) return;
+      nh(c.id, { title: String(h.title).slice(0, 120), unit: ['p', 'dia', 'oef', 'graf', 'def'].indexOf(h.unit) >= 0 ? h.unit : 'p', pages: Math.max(0, h.pages | 0), kind: h.kind === 'oefeningen' ? 'oefeningen' : 'theorie', difficulty: h.difficulty || 3, mpu: h.mpu || null, needSummary: !!h.needSummary, srcPages: h.srcPages | 0 }); added++;
+    });
+    try { cm(); } catch (e) {}
+    if (vw) { vw.tab = 'courses'; vw.course = c.id; }
+    rerender(); say(name + ' toegevoegd aan je vakken ✓ (' + added + ' onderdelen). Online bundels worden opgehaald…');
+    setTimeout(function () { pull(); if (window.UniPdf) UniPdf.pull(); }, 500);
+  }
+
   /* ---------- chat: show sent items and bundles ---------- */
   var cache = {}, whoOf = {};
   function chatHtml(m, mine, who, time) {
-    var r = /⟦(UI|UP):([^⟧]+)⟧/.exec(m.body || ''); if (!r) return null;
+    var r = /⟦(UI|UP|UC):([^⟧]+)⟧/.exec(m.body || ''); if (!r) return null;
     var k = 'm' + m.id; whoOf[k] = who;
     if (!cache[k]) { cache[k] = { busy: true }; ungz(r[2]).then(function (t) { cache[k] = { d: JSON.parse(t), type: r[1] }; fill(k); }).catch(function () { cache[k] = { err: 1 }; fill(k); }); }
     return '<div class="msg ' + (mine ? 'mine' : '') + '"><div class="bubble up-chat" data-upm="' + k + '">' + inner(k, mine, who) + '</div>' + time + '</div>';
@@ -250,6 +280,7 @@
         '<details><summary>' + (it.graf ? 'Toon hoe je het tekent' : 'Toon tussenstappen en antwoord') + '</summary><ol class="up-steps">' + (it.steps || []).map(function (h, i) { return '<li><span class="up-n">' + (i + 1) + '</span><div>' + mathify(clean(h)) + '</div></li>'; }).join('') + '</ol>' +
         '<div class="up-ans"><div class="up-res">' + (it.graf ? clean(it.ans) : mathify(clean(it.ans))) + '</div>' + clean(it.extra || '') + '</div></details>';
     }
+    if (c.type === 'UC') { var cc = d.course || {}; return '<b>' + (mine ? 'Je stuurde een vak' : '@' + escH(who) + ' stuurt je een vak') + '</b><p>📚 ' + escH(cc.name) + ' · ' + (d.chapters || []).length + ' onderdelen' + (cc.exam ? ' · examen ' + escH(cc.exam) : '') + '</p>' + (mine ? '' : '<p class="small">Met hoofdstukken, oefeningen, grafieken, flashcards en cursus die online staan. Je eigen planning wordt gemaakt.</p><button class="btn primary sm" data-up-takec="' + k + '">Voeg toe aan mijn vakken</button>'); }
     var n = (d.secs || []).reduce(function (a, s) { return a + (s.items || []).length; }, 0);
     return '<b>' + (mine ? 'Je stuurde een oefenpakket' : '@' + escH(who) + ' stuurt je een oefenpakket') + '</b><p>' + (d.kind === 'graf' ? '📈 ' : '✏️ ') + escH(d.name) + ' · ' + n + (d.kind === 'graf' ? ' grafieken' : ' oefeningen') + '</p>' +
       (mine ? '' : '<button class="btn primary sm" data-up-take="' + k + '">Zet in mijn app (vak ' + escH(d.course || '') + ')</button>');
@@ -303,10 +334,12 @@
 
   /* ---------- clicks ---------- */
   document.addEventListener('click', function (e) {
-    var b = e.target.closest && e.target.closest('[data-up],[data-up-open],[data-up-share],[data-up-del],[data-up-take],[data-up-pub]'); if (!b) return;
+    var b = e.target.closest && e.target.closest('[data-up],[data-up-open],[data-up-share],[data-up-del],[data-up-take],[data-up-pub],[data-up-takec],[data-up-sendc]'); if (!b) return;
     if (b.dataset.upOpen) return open(b.dataset.upOpen, b.dataset.upSec);
     if (b.dataset.upShare) return sendPack(b.dataset.upShare);
     if (b.dataset.upPub) return publish(b.dataset.upPub);
+    if (b.dataset.upSendc) return sendCourse(b.dataset.upSendc);
+    if (b.dataset.upTakec) { var cd = cache[b.dataset.upTakec] && cache[b.dataset.upTakec].d; if (cd) { try { localStorage.setItem('us-import-course', JSON.stringify(cd)); } catch (e) {} location.href = 'planner.html#importcourse'; } return; }
     if (b.dataset.upTake) return take(b.dataset.upTake);
     if (b.dataset.upDel) { var dp = packs.filter(function (x) { return x.id === b.dataset.upDel; })[0] || {}; me().then(function (u) { var mineOnline = dp.srv && u && dp.owner === u.id; if (!confirm(mineOnline ? 'Dit pakket ook online verwijderen, voor iedereen?' : dp.srv ? 'Dit online pakket komt terug zolang het online staat. Toch van dit toestel verwijderen?' : 'Dit oefenpakket van dit toestel verwijderen?')) return; (mineOnline ? unpublish(dp) : Promise.resolve()).then(function () { return remove(b.dataset.upDel); }).then(rerender); }); return; }
     var a = b.dataset.up; if (!T) return;
@@ -361,6 +394,6 @@
   if (!document.querySelector('link[data-stix]')) { var lf = document.createElement('link'); lf.rel = 'stylesheet'; lf.dataset.stix = 1; lf.href = 'https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap'; document.head.appendChild(lf); }
 
   window.UniPack = { studyHtml: studyHtml, load: load, courseHtml: courseHtml, chatHtml: chatHtml, open: open, get ready() { return ready; }, get packs() { return packs; } };
-  load().then(function () { if (packs.length) rerender(); setTimeout(pull, 2000); });
+  load().then(function () { if (/planner/.test(location.pathname)) importCourse(); if (packs.length) rerender(); setTimeout(pull, 2000); });
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') pull(); });
 })();
