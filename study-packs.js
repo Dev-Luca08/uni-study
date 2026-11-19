@@ -229,12 +229,42 @@
   }
 
   /* ---------- in the study screen: show the exact exercise or graph that is planned ---------- */
-  function studyHtml(course, ch, n) {
+  // flashcards in the study screen: Anki-style, any order, a card only counts after 2× "ken ik" in a row
+  var FQ = null;
+  function fcQueue(p, s, ch, left) {
+    var dm = doneMap(), key = ch.id + ':' + p.id;
+    if (!FQ || FQ.key !== key) {
+      var todo = []; s.items.forEach(function (_, i) { if (!dm[p.id + ':' + s.key + ':' + i]) todo.push(i); });
+      FQ = { key: key, p: p, s: s, queue: todo.slice(0, Math.max(1, left || todo.length)), streak: {}, flip: false, last: -1 };
+    }
+    if (!FQ.queue.length) return '<div class="up-embed up-card fc fcq"><p class="fc-term">🎉 Alle kaarten voor vandaag gekend!</p></div>';
+    var idx = FQ.queue[0], it = s.items[idx], st = FQ.streak[idx] || 0;
+    return '<div class="up-embed up-card fc fcq"><p class="small muted">' + FQ.queue.length + ' kaart' + (FQ.queue.length === 1 ? '' : 'en') + ' te gaan · ' + (st ? '1× goed, nog 1× om te kennen' : 'nieuw of nog niet gekend') + '</p>' +
+      '<div class="fc-term">' + mathify(it.q) + '</div>' +
+      (FQ.flip ? '<div class="up-ans"><div class="up-res">' + mathify(it.ans) + '</div>' + (it.extra || '') + '</div><div class="fcq-btns"><button class="btn" data-fcq="no">Nog niet</button><button class="btn primary" data-fcq="yes">Ken ik ✓</button></div>'
+        : '<div class="fcq-btns"><button class="btn primary" data-fcq="flip" style="grid-column:1/-1">Draai om</button></div>') + '</div>';
+  }
+  function fcAnswer(a) {
+    if (!FQ) return;
+    var dg = g('drawStudy');
+    if (a === 'flip') { FQ.flip = true; if (dg) dg(); return; }
+    var idx = FQ.queue.shift(); FQ.flip = false;
+    if (a === 'yes') {
+      FQ.streak[idx] = (FQ.streak[idx] || 0) + 1;
+      if (FQ.streak[idx] >= 2) { setDone(FQ.p.id + ':' + FQ.s.key + ':' + idx, true); var A = g('ACT'); if (A && A['study-page']) { A['study-page'](); return; } }
+      else FQ.queue.splice(Math.min(3, FQ.queue.length), 0, idx);
+    } else { FQ.streak[idx] = 0; FQ.queue.splice(Math.min(2, FQ.queue.length), 0, idx); }
+    if (dg) dg();
+  }
+  document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-fcq]'); if (b) fcAnswer(b.dataset.fcq); });
+
+  function studyHtml(course, ch, n, to) {
     if (!course || !ch) return '';
     for (var i = 0; i < packs.length; i++) {
       var p = packs[i]; if (nrm(p.course) !== nrm(course.name)) continue;
       for (var j = 0; j < p.secs.length; j++) {
         var s = p.secs[j], hit = chapterFor(course, p, s.key); if (!hit || hit.id !== ch.id) continue;
+        if (p.kind === 'fc') return fcQueue(p, s, ch, to ? to - n + 1 : 0);
         var it = s.items[n - 1]; if (!it) return '';
         if (it.fc) return '<div class="up-embed up-card fc"><div class="fc-term">' + mathify(it.q) + '</div><details><summary class="btn sm">Draai om</summary><div class="up-ans"><div class="up-res">' + mathify(it.ans) + '</div>' + (it.extra || '') + '</div></details><p class="small muted">Kende je het? Tik op ‘Kaart ' + n + ' klaar’. Nog niet? Lees het en probeer opnieuw.</p></div>';
         return '<div class="up-embed up-card"><div class="up-q"><span class="up-nr">' + escH(it.nr) + '</span><div>' + mathify(it.q) + '</div></div>' +
@@ -469,7 +499,8 @@
     '#uptrain .up-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line,#ddd);background:var(--surface,#fff)}#uptrain .up-foot>.btn:only-of-type{grid-column:1/-1}' +
     '#uptrain .up-foot .btn{min-height:50px}.up-nav{grid-column:1/-1;display:flex;justify-content:space-between}.up-chat .up-steps li{background:rgba(127,127,127,.12)}.up-chat details{margin-top:8px}.up-chat svg{max-width:100%;height:auto}' +
     '@keyframes upin{from{transform:translateY(6px)}to{opacity:1;transform:none}}@media(min-width:760px){#uptrain .up-foot{max-width:712px;width:100%;margin:0 auto;border:0;background:none}}';
-  css.textContent += '.uph{display:grid;gap:8px;margin:0 0 16px}.uph .up-row{display:flex!important;align-items:center;gap:10px;height:auto!important;min-height:58px;width:100%;text-align:left;white-space:normal;line-height:1.3}.uph .grow{flex:1;min-width:0}.uph .small{font-size:.82rem}.uph .muted{opacity:.7}' +
+  css.textContent += '#study .fcq{min-height:46vh;display:flex;flex-direction:column;justify-content:center;gap:14px}.fcq .fc-term{font-size:1.7rem}.fcq-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fcq-btns .btn{min-height:54px;font-size:1.05rem}#study .in:has(.fcq) .s-big,#study .in:has(.fcq) .s-page{display:none}' +
+    '.uph{display:grid;gap:8px;margin:0 0 16px}.uph .up-row{display:flex!important;align-items:center;gap:10px;height:auto!important;min-height:58px;width:100%;text-align:left;white-space:normal;line-height:1.3}.uph .grow{flex:1;min-width:0}.uph .small{font-size:.82rem}.uph .muted{opacity:.7}' +
     '#study .up-card.fc{text-align:center}.fc-term{font-size:1.5rem;padding:14px 4px}' +
     '.up-link{display:flex;align-items:center;gap:8px;margin:6px 0 -2px}.up-link select{min-height:34px;padding:4px 8px;font-size:.85rem;flex:1}' +
     '#study .up-embed{max-height:52vh;overflow:auto;text-align:left;margin:10px auto 0;width:min(640px,100%);color:var(--ink,#111)}#study .up-embed details{margin-top:4px}#study .up-embed summary{list-style:none;cursor:pointer;display:inline-flex}' +
