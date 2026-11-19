@@ -62,8 +62,8 @@
       var strip = function (x) { return (/^\(.*\)$/.test(x) && x.indexOf(')') === x.length - 1) || /^\[.*\]$/.test(x) ? x.slice(1, -1) : x; };
       return '<span class="mfrac"><span>' + strip(a) + '</span><span>' + strip(b) + '</span></span>';
     };
-    h = h.replace(new RegExp(tok + '\\s?\\/\\s?' + tok, 'g'), frac); // simple ones first (also inside brackets)
-    h = h.replace(new RegExp(opnd + '\\s?\\/\\s?' + opnd, 'g'), frac);
+    h = h.replace(new RegExp(tok + '\\s{0,3}\\/\\s{0,3}' + tok, 'g'), frac); // simple ones first (also inside brackets)
+    h = h.replace(new RegExp(opnd + '\\s{0,3}\\/\\s{0,3}' + opnd, 'g'), frac);
     // one formula per line: split on ";" and wide gaps
     h = h.replace(/;\s+(?=[^<]*(?:<|$))/g, '<br>').replace(/(?:\s|&nbsp;){3,}/g, '<br>');
     // ⇔ / ⇒ start a new line; a chain a = b = c gets one step per line, like in a handbook
@@ -206,7 +206,7 @@
     var re = new RegExp('(^|[^a-z0-9])' + key + '([^0-9]|$)');
     return chs(course.id).filter(function (ch) {
       var t = nrm(ch.title);
-      return pack.kind === 'fc' ? (t.indexOf('defin') >= 0 && re.test(t)) : pack.kind === 'graf' ? (t.indexOf('grafiek') >= 0 && re.test(t)) : re.test(t) && t.indexOf('grafiek') < 0;
+      return pack.kind === 'fc' ? (t.indexOf(pack.label === 'formules' ? 'formule' : 'defin') >= 0 && re.test(t)) : pack.kind === 'graf' ? (t.indexOf('grafiek') >= 0 && re.test(t)) : re.test(t) && t.indexOf('grafiek') < 0;
     })[0] || null;
   }
 
@@ -404,8 +404,8 @@
       var changed = false;
       for (var i = 0; i < r.data.length; i++) {
         var row = r.data[i], have = packs.filter(function (x) { return x.srv === row.id; })[0] || packs.filter(function (x) { return !x.srv && x.kind === row.kind && nrm(x.name) === nrm(row.name) && nrm(x.course) === nrm(row.course); })[0], t = Date.parse(row.updated_at) || 0;
-        if (have && (have.at || 0) >= t) continue;
-        if (have && have.owner === u.id) continue;
+        if (have && have.kind === row.kind && (have.at || 0) >= t) continue;
+        if (have && have.owner === u.id && have.kind === row.kind) continue;
         var full = await s.from('study_packs').select('data').eq('id', row.id).single(); if (full.error) continue;
         var p = fromData(JSON.parse(await ungz(full.data.data))); if (p.kind === 'fc') ensureChapters(p);
         p.id = have ? have.id : 's-' + row.id; p.srv = row.id; p.owner = row.owner; p.at = t;
