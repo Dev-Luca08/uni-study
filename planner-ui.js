@@ -502,7 +502,7 @@ function renderCourse(c) {
   else if (!r.feasible) state1 = `<div class="alert bad"><span class="ai">⚠️</span><div class="grow"><p>${r.noTime ? 'Er is geen studietijd meer vóór de deadline.' : `Krap: je hebt ±${fmtMin(r.need * avgCap())} per dag nodig voor dit vak.`} Geef meer tijd per dag, minder buffer-dagen of een latere "kennen tegen"-datum.</p></div></div>`;
   else if (r.finish) state1 = `<div class="alert good"><span class="ai">✅</span><div class="grow"><p>Op schema: klaar met studeren op <b>${fmtDay(r.finish, 'long')}</b>${exam ? `, daarna ${plural(Math.max(0, diffDays(r.finish, exam) - 1), 'dag', 'dagen')} om te herhalen` : ''}. Deze week ±${fmtMin(wl.perDay)} per dag.</p></div></div>`;
   return `
-    <div class="top" style="padding-top:0"><button class="btn sm ghost" data-act="courses-back">← Vakken</button><span class="grow"></span><button class="btn sm" data-act="course-edit" data-id="${c.id}">✏️ Bewerken</button></div>
+    <div class="top" style="padding-top:0"><button class="btn sm ghost" data-act="courses-back">← Vakken</button><span class="grow"></span><button class="btn sm primary" data-up-sendc="${esc(c.name)}">📤 Stuur heel dit vak</button><button class="btn sm" data-act="course-edit" data-id="${c.id}">✏️ Bewerken</button></div>
     <section class="course-hero" style="${cc(c)}">
       <div class="ttl"><span class="cc-emoji" aria-hidden="true">${emo(c)}</span><div class="grow"><h1>${esc(c.name)}</h1><p class="muted small">${examTxt(c)}</p></div><div class="big-pct num">${p.pct}%</div></div>
       <div class="pbar" role="img" aria-label="${p.pct}% klaar"><span class="k" style="width:${p.pct}%"></span></div>
