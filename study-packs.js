@@ -55,8 +55,8 @@
     h = h.replace(/\blim\s*<sub>([\s\S]*?)<\/sub>/g, '<span class="mop lim"><span class="msym">lim</span><span class="mlo">$1</span></span>');
     h = h.replace(/∫\s*<sub>([\s\S]*?)<\/sub>\s*<sup>([\s\S]*?)<\/sup>/g, '<span class="mop"><span class="mup">$2</span><span class="msym">∫</span><span class="mlo">$1</span></span>');
     // real fractions: a/b, (..)/(..), [..]/h, df/dx (not for words like en/of)
-    var opnd = '(\\[[^\\[\\]]{1,80}\\]|\\((?:[^()]|\\([^()]*\\)){1,80}\\)|[∂A-Za-z0-9′\'²³ⁿ.]+(?:<su[bp]>[^<]{0,20}<\\/su[bp]>)*)';
-    var tok = '([∂A-Za-z0-9′\'²³ⁿ.]+(?:<su[bp]>[^<]{0,20}<\\/su[bp]>)*)';
+    var opnd = '(\\[[^\\[\\]]{1,80}\\]|\\((?:[^()]|\\([^()]*\\)){1,80}\\)|[∂A-Za-z0-9′\'²³ⁿ.!α-ωπ∞]+(?:<su[bp]>[^<]{0,20}<\\/su[bp]>)*)';
+    var tok = '([∂A-Za-z0-9′\'²³ⁿ.!α-ωπ∞]+(?:<su[bp]>[^<]{0,20}<\\/su[bp]>)*)';
     var frac = function (all, a, b) {
       if (/^[A-Za-z]{3,}$/.test(a) && /^[A-Za-z]{3,}$/.test(b)) return all;
       var strip = function (x) { return (/^\(.*\)$/.test(x) && x.indexOf(')') === x.length - 1) || /^\[.*\]$/.test(x) ? x.slice(1, -1) : x; };
