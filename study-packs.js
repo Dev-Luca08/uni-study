@@ -244,7 +244,7 @@
     if (pulling) return; pulling = true;
     try {
       var s = sbc(), u = await me(); if (!s || !u) return;
-      var r = await s.from('study_packs').select('id,owner,course,name,kind,items,updated_at'); if (r.error || !r.data) return;
+      var r = await s.from('study_packs').select('id,owner,course,name,kind,items,updated_at').neq('kind', 'pdf'); if (r.error || !r.data) return;
       var changed = false;
       for (var i = 0; i < r.data.length; i++) {
         var row = r.data[i], have = packs.filter(function (x) { return x.srv === row.id; })[0], t = Date.parse(row.updated_at) || 0;

@@ -525,6 +525,7 @@ function renderCourse(c) {
       <div class="chapters">${p.chs.map((ch, i) => chapterRow(c, ch, i, p.chs.length)).join('') || '<p class="muted small">Nog geen hoofdstukken.</p>'}</div>
       <div class="row section"><button class="btn sm primary" data-act="chapter-new" data-course="${c.id}">+ Hoofdstuk</button><button class="btn sm" data-act="upload" data-course="${c.id}">📄 Bestanden uploaden</button><button class="btn sm" data-act="bulk" data-course="${c.id}">⚡ Meerdere tegelijk</button></div>
     </section>
+    ${window.UniPdf ? UniPdf.courseHtml(c) : ''}
     ${window.UniPack ? UniPack.courseHtml(c) : ''}
     ${courseFlashHtml(c)}
     <details class="card section more-box"><summary><b>Instellingen, notities en meer</b></summary>${coursePlanForm(c)}
