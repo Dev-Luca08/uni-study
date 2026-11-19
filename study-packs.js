@@ -65,6 +65,11 @@
     h = h.replace(new RegExp(tok + '\\s{0,3}\\/\\s{0,3}' + tok, 'g'), frac); // simple ones first (also inside brackets)
     h = h.replace(new RegExp(opnd + '\\s{0,3}\\/\\s{0,3}' + opnd, 'g'), frac);
     // one formula per line: split on ";" and wide gaps
+    h = h.replace(/([\[(])((?:[^\[\]()<;]|<su[bp]>[^<]*<\/su[bp]>)+(?:;(?:[^\[\]()<;]|<su[bp]>[^<]*<\/su[bp]>)+)+)([\])])/g, function (all, o, body, c) {
+      var rows = body.split(';').map(function (r) { return r.trim().split(/\s*,\s*|\s+/).filter(Boolean); }); var n = rows[0].length;
+      if (rows.length < 2 || n < 1 || rows.some(function (r) { return r.length !== n; })) return all;
+      return '<span class="mmat' + (o === '(' ? ' par' : '') + '" style="grid-template-columns:repeat(' + n + ',auto)">' + rows.map(function (r) { return r.map(function (x) { return '<span>' + x + '</span>'; }).join(''); }).join('') + '</span>';
+    });
     h = h.replace(/;\s+(?=[^<]*(?:<|$))/g, '<br>').replace(/(?:\s|&nbsp;){3,}/g, '<br>');
     // ⇔ / ⇒ start a new line; a chain a = b = c gets one step per line, like in a handbook
     h = h.replace(/\s*(⇔|⇒|⟺|⟹)\s*/g, '<br>$1 ');
@@ -152,12 +157,13 @@
     }
     rows = rows.filter(function (r) { return r.some(function (c) { return plain(c).trim(); }); });
     if (!rows.length) throw new Error('Dit bestand is leeg.');
-    var head = rows[0].map(function (c) { return nrm(plain(c)); }), hi = -1, ti = -1, di = -1, vi = -1;
+    var head = rows[0].map(function (c) { return nrm(plain(c)); }), hi = -1, ti = -1, di = -1, vi = -1, ei = -1;
     head.forEach(function (h, i) {
       if (hi < 0 && /^(h|hfst|hoofdstuk|chapter|ch)\b/.test(h)) hi = i;
       else if (ti < 0 && /(begrip|term|woord|vraag|voorkant|naam)/.test(h)) ti = i;
       else if (di < 0 && /(definitie|uitleg|betekenis|antwoord|achterkant|omschrijving|formule)/.test(h)) di = i;
       else if (vi < 0 && /(voorwaarde|let op|wanneer|opmerking)/.test(h)) vi = i;
+      else if (ei < 0 && /(voorbeeld|example|visual)/.test(h)) ei = i;
     });
     var hasHead = hi >= 0 || ti >= 0 || di >= 0;
     if (!hasHead) { var n = rows[0].length; if (n >= 3) { ti = 0; di = 1; vi = 2; } else { ti = 0; di = 1; } }
@@ -167,14 +173,14 @@
     var isFormula = /formule/i.test(file.name) || head[di] === 'formule';
     var bySec = {}, order = [];
     rows.slice(hasHead ? 1 : 0).forEach(function (r) {
-      var term = String(r[ti] || '').trim(), def = String(r[di] || '').trim(), extra = vi >= 0 ? String(r[vi] || '').trim() : '';
+      var term = String(r[ti] || '').trim(), def = String(r[di] || '').trim(), extra = vi >= 0 ? String(r[vi] || '').trim() : '', exm = ei >= 0 ? String(r[ei] || '').trim() : '';
       if (!plain(term).trim() && !plain(def).trim()) return;
       var hv = hi >= 0 ? plain(r[hi] || '') : '', m = /(\d+)/.exec(hv), pm = /^\s*h(\d+)\s*[·:\-–]\s*/i.exec(plain(term));
       if (!m && pm) { m = pm; term = term.replace(/^\s*H\d+\s*[·:\-–]\s*/i, ''); }
       var key = m ? 'h' + m[1] : fileKey || 'alle';
       if (!bySec[key]) { bySec[key] = { key: key, title: key === 'alle' ? 'Alle kaarten' : 'Hoofdstuk ' + key.slice(1), items: [] }; order.push(key); }
       var s = bySec[key];
-      s.items.push({ nr: String(s.items.length + 1), q: '<b>' + clean(term) + '</b>', steps: [], ans: clean(def).replace(/\n/g, '<br>'), extra: plain(extra).trim() ? '<p class="pit"><b>Let op</b> ' + clean(extra).replace(/\n/g, '<br>') + '</p>' : '', fc: 1 });
+      s.items.push({ nr: String(s.items.length + 1), q: '<b>' + clean(term) + '</b>', steps: [], ans: clean(def).replace(/\n/g, '<br>'), extra: plain(extra).trim() ? '<p class="pit"><b>Let op</b> ' + clean(extra).replace(/\n/g, '<br>') + '</p>' : '', ex: plain(exm).trim() ? clean(exm).replace(/\n/g, '<br>') : '', fc: 1 });
     });
     order.sort(function (a, b) { return (parseInt(a.slice(1), 10) || 999) - (parseInt(b.slice(1), 10) || 999); });
     if (!order.length) throw new Error('Ik vond geen kaarten in dit bestand.');
@@ -241,7 +247,7 @@
     var idx = FQ.queue[0], it = s.items[idx], st = FQ.streak[idx] || 0;
     return '<div class="up-embed up-card fc fcq"><p class="small muted">' + FQ.queue.length + ' kaart' + (FQ.queue.length === 1 ? '' : 'en') + ' te gaan · ' + (st ? '1× goed, nog 1× om te kennen' : 'nieuw of nog niet gekend') + '</p>' +
       '<div class="fc-term">' + mathify(it.q) + '</div>' +
-      (FQ.flip ? '<div class="up-ans"><div class="up-res">' + mathify(it.ans) + '</div>' + (it.extra || '') + '</div><div class="fcq-btns"><button class="btn" data-fcq="no">Nog niet</button><button class="btn primary" data-fcq="yes">Ken ik ✓</button></div>'
+      (FQ.flip ? '<div class="up-ans"><div class="up-res">' + mathify(it.ans) + '</div>' + (it.ex ? '<div class="fc-ex"><p class="up-lbl">Voorbeeld</p><div class="up-res">' + mathify(it.ex) + '</div></div>' : '') + (it.extra || '') + '</div><div class="fcq-btns"><button class="btn" data-fcq="no">Nog niet</button><button class="btn primary" data-fcq="yes">Ken ik ✓</button></div>'
         : '<div class="fcq-btns"><button class="btn primary" data-fcq="flip" style="grid-column:1/-1">Draai om</button></div>') + '</div>';
   }
   function fcAnswer(a) {
@@ -404,7 +410,7 @@
   async function take(k) {
     var d = cache[k] && cache[k].d; if (!d) return;
     var p = { id: 'p' + Date.now().toString(36), name: String(d.name || 'Oefenpakket').slice(0, 120), kind: d.kind === 'graf' ? 'graf' : 'oef', course: String(d.course || 'Wiskunde').slice(0, 120), at: Date.now(),
-      secs: (d.secs || []).map(function (s) { return { key: String(s.key).slice(0, 20), title: String(s.title || '').slice(0, 160), items: (s.items || []).map(function (it) { return { nr: String(it.nr || '').slice(0, 20), sub: String(it.sub || '').slice(0, 160), title: it.title, graf: it.graf ? 1 : 0, q: clean(it.q), steps: (it.steps || []).map(clean), ans: clean(it.ans), extra: clean(it.extra || '') }; }) }; }) };
+      secs: (d.secs || []).map(function (s) { return { key: String(s.key).slice(0, 20), title: String(s.title || '').slice(0, 160), items: (s.items || []).map(function (it) { return { nr: String(it.nr || '').slice(0, 20), sub: String(it.sub || '').slice(0, 160), title: it.title, graf: it.graf ? 1 : 0, q: clean(it.q), steps: (it.steps || []).map(clean), ans: clean(it.ans), extra: clean(it.extra || ''), ex: clean(it.ex || '') }; }) }; }) };
     await save(p);
     if (confirm('Toegevoegd aan je app bij het vak ' + p.course + '. Nu openen in Planning?')) location.href = 'planner.html#courses';
   }
@@ -414,7 +420,7 @@
   async function me() { var s = sbc(); if (!s) return null; var r = await s.auth.getSession(); return r && r.data && r.data.session ? r.data.session.user : null; }
   function fromData(d) {
     return { name: String(d.name || 'Oefenpakket').slice(0, 120), kind: d.kind === 'graf' || d.kind === 'fc' ? d.kind : 'oef', label: d.label === 'formules' ? 'formules' : 'definities', course: String(d.course || 'Wiskunde').slice(0, 120),
-      secs: (d.secs || []).map(function (s) { return { key: String(s.key).slice(0, 20), title: String(s.title || '').slice(0, 160), items: (s.items || []).map(function (it) { return { nr: String(it.nr || '').slice(0, 20), sub: String(it.sub || '').slice(0, 160), title: it.title, graf: it.graf ? 1 : 0, fc: it.fc ? 1 : 0, q: clean(it.q), steps: (it.steps || []).map(clean), ans: clean(it.ans), extra: clean(it.extra || '') }; }) }; }) };
+      secs: (d.secs || []).map(function (s) { return { key: String(s.key).slice(0, 20), title: String(s.title || '').slice(0, 160), items: (s.items || []).map(function (it) { return { nr: String(it.nr || '').slice(0, 20), sub: String(it.sub || '').slice(0, 160), title: it.title, graf: it.graf ? 1 : 0, fc: it.fc ? 1 : 0, q: clean(it.q), steps: (it.steps || []).map(clean), ans: clean(it.ans), extra: clean(it.extra || ''), ex: clean(it.ex || '') }; }) }; }) };
   }
   async function publish(id) {
     var p = packs.filter(function (x) { return x.id === id; })[0], s = sbc(), u = await me();
@@ -499,7 +505,8 @@
     '#uptrain .up-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line,#ddd);background:var(--surface,#fff)}#uptrain .up-foot>.btn:only-of-type{grid-column:1/-1}' +
     '#uptrain .up-foot .btn{min-height:50px}.up-nav{grid-column:1/-1;display:flex;justify-content:space-between}.up-chat .up-steps li{background:rgba(127,127,127,.12)}.up-chat details{margin-top:8px}.up-chat svg{max-width:100%;height:auto}' +
     '@keyframes upin{from{transform:translateY(6px)}to{opacity:1;transform:none}}@media(min-width:760px){#uptrain .up-foot{max-width:712px;width:100%;margin:0 auto;border:0;background:none}}';
-  css.textContent += '#study .fcq{min-height:46vh;max-height:64vh;display:flex;flex-direction:column;justify-content:safe center;gap:14px}.fcq>*{flex-shrink:0}.fcq-btns{position:sticky;bottom:-20px;padding:10px 0;background:var(--surface,#fff)}.fcq .fc-term{font-size:1.7rem}.fcq-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fcq-btns .btn{min-height:54px;font-size:1.05rem}#study .in:has(.fcq) .s-big,#study .in:has(.fcq) .s-page{display:none}' +
+  css.textContent += '.mmat{display:inline-grid;gap:.15em .7em;vertical-align:middle;padding:.15em .45em;margin:.1em .2em;border-left:1.5px solid currentColor;border-right:1.5px solid currentColor;border-radius:3px;text-align:center;line-height:1.3}.mmat.par{border-radius:.6em}.fc-ex{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--accent-soft,#e1e7fa)}' +
+    '#study .fcq{min-height:46vh;max-height:64vh;display:flex;flex-direction:column;justify-content:safe center;gap:14px}.fcq>*{flex-shrink:0}.fcq-btns{position:sticky;bottom:-20px;padding:10px 0;background:var(--surface,#fff)}.fcq .fc-term{font-size:1.7rem}.fcq-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fcq-btns .btn{min-height:54px;font-size:1.05rem}#study .in:has(.fcq) .s-big,#study .in:has(.fcq) .s-page{display:none}' +
     '.uph{display:grid;gap:8px;margin:0 0 16px}.uph .up-row{display:flex!important;align-items:center;gap:10px;height:auto!important;min-height:58px;width:100%;text-align:left;white-space:normal;line-height:1.3}.uph .grow{flex:1;min-width:0}.uph .small{font-size:.82rem}.uph .muted{opacity:.7}' +
     '#study .up-card.fc{text-align:center}.fc-term{font-size:1.5rem;padding:14px 4px}' +
     '.up-link{display:flex;align-items:center;gap:8px;margin:6px 0 -2px}.up-link select{min-height:34px;padding:4px 8px;font-size:.85rem;flex:1}' +
