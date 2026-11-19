@@ -63,10 +63,10 @@ function fmtMin(m) {
   const h = Math.floor(m / 60), r = m % 60;
   return r ? `${h}u${pad2(r)}` : `${h}u`;
 }
-const unitWord = (unit, n) => unit === 'dia' ? (n === 1 ? 'dia' : "dia's") : unit === 'oef' ? (n === 1 ? 'oefening' : 'oefeningen') : unit === 'graf' ? (n === 1 ? 'grafiek' : 'grafieken') : (n === 1 ? 'pagina' : "pagina's");
-const unitShort = unit => unit === 'dia' ? 'dia' : unit === 'oef' ? 'oef.' : unit === 'graf' ? 'graf.' : 'p.';
+const unitWord = (unit, n) => unit === 'dia' ? (n === 1 ? 'dia' : "dia's") : unit === 'oef' ? (n === 1 ? 'oefening' : 'oefeningen') : unit === 'graf' ? (n === 1 ? 'grafiek' : 'grafieken') : unit === 'def' ? (n === 1 ? 'definitie' : 'definities') : (n === 1 ? 'pagina' : "pagina's");
+const unitShort = unit => unit === 'dia' ? 'dia' : unit === 'oef' ? 'oef.' : unit === 'graf' ? 'graf.' : unit === 'def' ? 'def.' : 'p.';
 function rangeText(unit, from, to) {
-  if (unit === 'oef' || unit === 'graf') { const w = unit === 'oef' ? 'oef.' : 'grafiek'; return from === to ? `${w} ${from}` : `${w} ${from}–${to}`; }
+  if (unit === 'oef' || unit === 'graf' || unit === 'def') { const w = unit === 'oef' ? 'oef.' : unit === 'def' ? 'definitie' : 'grafiek'; return from === to ? `${w} ${from}` : `${w} ${from}–${to}`; }
   if (unit === 'dia') return from === to ? `dia ${from}` : `dia ${from}–${to}`;
   return from === to ? `p. ${from}` : `p. ${from}–${to}`;
 }
@@ -271,7 +271,7 @@ function measured(cid) {
   });
 }
 function mpu(c, ch) {
-  if ((ch.unit === 'oef' || ch.unit === 'graf') && num(ch.mpu) > 0) return Math.max(.5, num(ch.mpu));
+  if ((ch.unit === 'oef' || ch.unit === 'graf' || ch.unit === 'def') && num(ch.mpu) > 0) return Math.max(.5, num(ch.mpu));
   let v = ch.unit === 'dia' ? (c.minPerSlide ?? cfg().minPerSlide) : (c.minPerPage ?? cfg().minPerPage);
   if ((!ch.unit || ch.unit === 'p') && c.useMeasured !== false) { const ms = measured(c.id); if (ms) v = ms.mpu; }
   return Math.max(.5, num(v, 8) * (DIFF_MUL[ch.difficulty || 3] || 1) * (ch.kind === 'oefeningen' ? 1.2 : 1));

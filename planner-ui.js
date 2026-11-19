@@ -739,7 +739,7 @@ SHEETS.chapter = () => {
         <label class="fld"><span>Status</span><select class="field" name="status">${Object.entries(STATUS).map(([k, [l, i]]) => opt(k, i + ' ' + l, st)).join('')}</select></label>
         <label class="fld"><span>Kennen tegen</span><input class="field" type="date" name="due" value="${esc(ch.due || '')}"><span class="help">Leeg = ${c && validDay(c.exam) ? 'automatisch vóór het examen' : 'geen deadline'}</span></label>
         <label class="fld"><span>Soort</span><select class="field" name="kind">${Object.entries(KINDS).map(([k, l]) => opt(k, l, ch.kind)).join('')}</select></label>
-        <div class="fld"><span>Studeer je uit</span><div class="seg" role="radiogroup">${[['p', "📄 pagina's"], ['dia', "📊 dia's"], ['oef', '✏️ oefeningen'], ['graf', '📈 grafieken']].map(([v, l]) => `<label><input type="radio" name="unit" value="${v}" ${ch.unit === v ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div></div>
+        <div class="fld"><span>Studeer je uit</span><div class="seg" role="radiogroup">${[['p', "📄 pagina's"], ['dia', "📊 dia's"], ['oef', '✏️ oefeningen'], ['graf', '📈 grafieken'], ['def', '🃏 definities']].map(([v, l]) => `<label><input type="radio" name="unit" value="${v}" ${ch.unit === v ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div></div>
       </div>
       <div class="fld"><span>Moeilijkheid</span>${stars('difficulty', ch.difficulty || 3)}</div>
       </div></details>
@@ -1070,7 +1070,7 @@ function saveChapterForm(f, silent) {
   const prevStatus = chStatus(ch);
   ch.title = (v.title || ch.title).trim().slice(0, 90) || ch.title;
   ch.kind = v.kind || 'theorie';
-  ch.unit = ['dia', 'oef', 'graf'].includes(v.unit) ? v.unit : 'p';
+  ch.unit = ['dia', 'oef', 'graf', 'def'].includes(v.unit) ? v.unit : 'p';
   ch.difficulty = clamp(int(v.difficulty, 3), 1, 5);
   ch.due = validDay(v.due) ? v.due : '';
   ch.needSummary = !!v.needSummary;

@@ -88,6 +88,45 @@
     var graf = secs.some(function (s) { return s.items.some(function (i) { return i.graf; }); });
     return { name: name.slice(0, 120), kind: graf ? 'graf' : 'oef', secs: secs };
   }
+  async function parseSheet(file) {
+    var ls = g('loadScript'); if (ls) await ls('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', 'XLSX');
+    if (!window.XLSX) throw new Error('Excel lezen lukt hier niet.');
+    var wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), { type: 'array' }), rows = [];
+    wb.SheetNames.forEach(function (n) { rows = rows.concat(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '' })); });
+    rows = rows.filter(function (r) { return r.some(function (c) { return String(c).trim(); }); });
+    if (!rows.length) throw new Error('Dit bestand is leeg.');
+    var head = rows[0].map(function (c) { return nrm(c); }), hi = -1, ti = -1, di = -1;
+    head.forEach(function (h, i) { if (hi < 0 && /^(h|hfst|hoofdstuk|chapter|ch)\b/.test(h)) hi = i; else if (ti < 0 && /(begrip|term|woord|vraag|voorkant|formule|naam)/.test(h)) ti = i; else if (di < 0 && /(definitie|uitleg|betekenis|antwoord|achterkant|omschrijving)/.test(h)) di = i; });
+    var hasHead = hi >= 0 || ti >= 0 || di >= 0;
+    if (!hasHead) { var n = rows[0].length; if (n >= 3) { hi = 0; ti = 1; di = 2; } else { ti = 0; di = 1; } }
+    if (ti < 0) ti = [0, 1, 2].filter(function (i) { return i !== hi && i !== di; })[0];
+    if (di < 0) di = [0, 1, 2].filter(function (i) { return i !== hi && i !== ti; })[0];
+    var bySec = {}, order = [];
+    rows.slice(hasHead ? 1 : 0).forEach(function (r) {
+      var term = String(r[ti] || '').trim(), def = String(r[di] || '').trim(); if (!term && !def) return;
+      var hv = hi >= 0 ? String(r[hi] || '').trim() : '', m = /(\d+)/.exec(hv), key = m ? 'h' + m[1] : 'alle';
+      if (!bySec[key]) { bySec[key] = { key: key, title: m ? 'Hoofdstuk ' + m[1] : 'Alle kaarten', items: [] }; order.push(key); }
+      var it = bySec[key]; it.items.push({ nr: String(it.items.length + 1), q: '<b>' + escH(term) + '</b>', steps: [], ans: escH(def).replace(/\n/g, '<br>'), fc: 1 });
+    });
+    order.sort(function (a, b) { return (parseInt(a.slice(1), 10) || 999) - (parseInt(b.slice(1), 10) || 999); });
+    if (!order.length) throw new Error('Ik vond geen kaarten in dit bestand.');
+    return { name: file.name.replace(/\.(xlsx|xls|csv|ods)$/i, '').slice(0, 120), kind: 'fc', secs: order.map(function (k) { return bySec[k]; }) };
+  }
+  // flashcards get their own chapters in the planning ("H2 definities"), so the app spreads them over the days
+  function ensureChapters(p) {
+    var c = coursesByName(p.course)[0], chs = g('chaptersOf'), nc = g('newChapter'), cm = g('commit'); if (!c || !chs || !nc) return;
+    p.map = p.map || {};
+    p.secs.forEach(function (s) {
+      var title = (s.key === 'alle' ? 'Alle' : s.key.toUpperCase()) + ' definities', have = chs(c.id).filter(function (ch) { return nrm(ch.title) === nrm(title); })[0];
+      if (!have) nc(c.id, { title: title, unit: 'def', pages: s.items.length, kind: 'theorie', mpu: 1.5 });
+      p.map[s.key] = title;
+    });
+    // put each 'Hn definities' right after the theory of Hn
+    var all = chs(c.id), put = g('put');
+    all.forEach(function (ch) { var t = nrm(ch.title); if (t.indexOf('definities') < 0) return; var key = t.split(' ')[0], base = all.filter(function (x) { var xt = nrm(x.title); return xt.indexOf('definities') < 0 && xt.indexOf('grafiek') < 0 && new RegExp('^' + key + '(\\D|$)').test(xt); })[0]; if (base) ch.order = base.order + 0.5; });
+    all.slice().sort(function (a, b) { return a.order - b.order; }).forEach(function (ch, i) { ch.order = i; if (put) put('chapters', ch); });
+    try { if (cm) cm(); } catch (e) {}
+  }
   function count(p) { return p.secs.reduce(function (n, s) { return n + s.items.length; }, 0); }
 
   /* ---------- link to the chapters of a course ---------- */
@@ -98,7 +137,7 @@
     var re = new RegExp('(^|[^a-z0-9])' + key + '([^0-9]|$)');
     return chs(course.id).filter(function (ch) {
       var t = nrm(ch.title);
-      return pack.kind === 'graf' ? (t.indexOf('grafiek') >= 0 && re.test(t)) : re.test(t) && t.indexOf('grafiek') < 0;
+      return pack.kind === 'fc' ? (t.indexOf('defin') >= 0 && re.test(t)) : pack.kind === 'graf' ? (t.indexOf('grafiek') >= 0 && re.test(t)) : re.test(t) && t.indexOf('grafiek') < 0;
     })[0] || null;
   }
 
@@ -117,7 +156,7 @@
     }).join('<hr style="border:0;border-top:1px solid var(--line)">');
     return '<section class="card section stack"><div class="section-head"><h2>Oefenen</h2></div>' +
       (list || '<p class="muted small">Laad een oefenbundel of grafiekenbundel (HTML-bestand). Je oefent dan per werkcollege of hoofdstuk, één oefening of grafiek tegelijk, met tussenstappen en antwoord.</p>') +
-      '<label class="btn sm" style="justify-self:start">📚 Oefenbundel of grafieken toevoegen<input type="file" accept=".html,.htm,text/html" hidden data-up-file="' + escH(c.name) + '"></label></section>';
+      '<label class="btn sm" style="justify-self:start">📚 Oefenbundel, grafieken of flashcards toevoegen<input type="file" accept=".html,.htm,text/html,.xlsx,.xls,.csv,.ods" hidden data-up-file="' + escH(c.name) + '"></label></section>';
   }
 
   /* ---------- in the study screen: show the exact exercise or graph that is planned ---------- */
@@ -128,6 +167,7 @@
       for (var j = 0; j < p.secs.length; j++) {
         var s = p.secs[j], hit = chapterFor(course, p, s.key); if (!hit || hit.id !== ch.id) continue;
         var it = s.items[n - 1]; if (!it) return '';
+        if (it.fc) return '<div class="up-embed up-card fc"><div class="fc-term">' + mathify(it.q) + '</div><details><summary class="btn sm">Toon definitie</summary><div class="up-ans"><div class="up-res">' + mathify(it.ans) + '</div></div></details><p class="small muted">Kende je het? Tik op ‘Definitie ' + n + ' klaar’. Nog niet? Lees het en probeer opnieuw.</p></div>';
         return '<div class="up-embed up-card"><div class="up-q"><span class="up-nr">' + escH(it.nr) + '</span><div>' + mathify(it.q) + '</div></div>' +
           (it.steps.length ? '<details><summary class="btn sm">' + (it.graf ? 'Zo teken je het' : 'Toon tussenstappen') + '</summary><ol class="up-steps">' + it.steps.map(function (h, k) { return '<li><span class="up-n">' + (k + 1) + '</span><div>' + mathify(h) + '</div></li>'; }).join('') + '</ol></details>' : '') +
           '<details><summary class="btn sm">' + (it.graf ? 'Toon de grafiek' : 'Toon antwoord') + '</summary><div class="up-ans"><div class="up-res">' + (it.graf ? it.ans : mathify(it.ans)) + '</div>' + (it.extra || '') + '</div></details></div>';
@@ -227,8 +267,8 @@
   function sbc() { return (g('Sync') && g('Sync').sb) || (g('Cloud') && g('Cloud').sb) || null; }
   async function me() { var s = sbc(); if (!s) return null; var r = await s.auth.getSession(); return r && r.data && r.data.session ? r.data.session.user : null; }
   function fromData(d) {
-    return { name: String(d.name || 'Oefenpakket').slice(0, 120), kind: d.kind === 'graf' ? 'graf' : 'oef', course: String(d.course || 'Wiskunde').slice(0, 120),
-      secs: (d.secs || []).map(function (s) { return { key: String(s.key).slice(0, 20), title: String(s.title || '').slice(0, 160), items: (s.items || []).map(function (it) { return { nr: String(it.nr || '').slice(0, 20), sub: String(it.sub || '').slice(0, 160), title: it.title, graf: it.graf ? 1 : 0, q: clean(it.q), steps: (it.steps || []).map(clean), ans: clean(it.ans), extra: clean(it.extra || '') }; }) }; }) };
+    return { name: String(d.name || 'Oefenpakket').slice(0, 120), kind: d.kind === 'graf' || d.kind === 'fc' ? d.kind : 'oef', course: String(d.course || 'Wiskunde').slice(0, 120),
+      secs: (d.secs || []).map(function (s) { return { key: String(s.key).slice(0, 20), title: String(s.title || '').slice(0, 160), items: (s.items || []).map(function (it) { return { nr: String(it.nr || '').slice(0, 20), sub: String(it.sub || '').slice(0, 160), title: it.title, graf: it.graf ? 1 : 0, fc: it.fc ? 1 : 0, q: clean(it.q), steps: (it.steps || []).map(clean), ans: clean(it.ans), extra: clean(it.extra || '') }; }) }; }) };
   }
   async function publish(id) {
     var p = packs.filter(function (x) { return x.id === id; })[0], s = sbc(), u = await me();
@@ -251,7 +291,7 @@
         if (have && (have.at || 0) >= t) continue;
         if (have && have.owner === u.id) continue;
         var full = await s.from('study_packs').select('data').eq('id', row.id).single(); if (full.error) continue;
-        var p = fromData(JSON.parse(await ungz(full.data.data)));
+        var p = fromData(JSON.parse(await ungz(full.data.data))); if (p.kind === 'fc') ensureChapters(p);
         p.id = have ? have.id : 's-' + row.id; p.srv = row.id; p.owner = row.owner; p.at = t;
         await save(p); changed = true;
       }
@@ -285,9 +325,10 @@
     if (el.dataset && el.dataset.upMap) { var mp = packs.filter(function (x) { return x.id === el.dataset.upMap; })[0]; if (mp) { mp.map = mp.map || {}; mp.map[el.dataset.upKey] = el.value; await save(mp); say(el.value ? 'Gekoppeld aan ' + el.value + ' ✓' : 'Niet meer gekoppeld'); rerender(); } return; }
     if (!el.dataset || el.dataset.upFile == null || !el.files[0]) return;
     try {
-      var f = el.files[0], p = parse(await f.text(), f.name.replace(/\.html?$/i, ''));
+      var f = el.files[0], isSheet = /\.(xlsx|xls|csv|ods)$/i.test(f.name), p = isSheet ? await parseSheet(f) : parse(await f.text(), f.name.replace(/\.html?$/i, ''));
       p.id = 'p' + Date.now().toString(36); p.course = el.dataset.upFile; p.at = Date.now();
-      await save(p); say(count(p) + (p.kind === 'graf' ? ' grafieken' : ' oefeningen') + ' toegevoegd ✓');
+      if (p.kind === 'fc') ensureChapters(p);
+      await save(p); say(count(p) + (p.kind === 'graf' ? ' grafieken' : p.kind === 'fc' ? ' kaarten (per hoofdstuk ingepland)' : ' oefeningen') + ' toegevoegd ✓');
       var r = g('render'); if (typeof r === 'function') r();
     } catch (err) { say(err.message || 'Dit bestand kon ik niet lezen.'); }
     el.value = '';
@@ -309,7 +350,8 @@
     '#uptrain .up-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line,#ddd);background:var(--surface,#fff)}#uptrain .up-foot>.btn:only-of-type{grid-column:1/-1}' +
     '#uptrain .up-foot .btn{min-height:50px}.up-nav{grid-column:1/-1;display:flex;justify-content:space-between}.up-chat .up-steps li{background:rgba(127,127,127,.12)}.up-chat details{margin-top:8px}.up-chat svg{max-width:100%;height:auto}' +
     '@keyframes upin{from{transform:translateY(6px)}to{opacity:1;transform:none}}@media(min-width:760px){#uptrain .up-foot{max-width:712px;width:100%;margin:0 auto;border:0;background:none}}';
-  css.textContent += '.up-link{display:flex;align-items:center;gap:8px;margin:6px 0 -2px}.up-link select{min-height:34px;padding:4px 8px;font-size:.85rem;flex:1}' +
+  css.textContent += '#study .up-card.fc{text-align:center}.fc-term{font-size:1.5rem;padding:14px 4px}' +
+    '.up-link{display:flex;align-items:center;gap:8px;margin:6px 0 -2px}.up-link select{min-height:34px;padding:4px 8px;font-size:.85rem;flex:1}' +
     '#study .up-embed{max-height:52vh;overflow:auto;text-align:left;margin:10px auto 0;width:min(640px,100%);color:var(--ink,#111)}#study .up-embed details{margin-top:4px}#study .up-embed summary{list-style:none;cursor:pointer;display:inline-flex}' +
     '.math{font-family:"STIX Two Text","Cambria Math","Cambria","Latin Modern Roman","Times New Roman",serif;font-size:1.08em;letter-spacing:.005em}' +
     '.math sub,.math sup{font-size:.68em;line-height:0}.math sup{vertical-align:.55em}.math sub{vertical-align:-.3em}' +
