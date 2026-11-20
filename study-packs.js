@@ -64,6 +64,10 @@
     };
     h = h.replace(new RegExp(tok + '\\s{0,3}\\/\\s{0,3}' + tok, 'g'), frac); // simple ones first (also inside brackets)
     h = h.replace(new RegExp(opnd + '\\s{0,3}\\/\\s{0,3}' + opnd, 'g'), frac);
+    h = h.replace(/\(\s*([a-z])<sub>ij<\/sub>\s*\)/, function (all, v) {
+      var c = function (s) { return '<span>' + s + '</span>'; }, e = function (i, j) { return c(v + '<sub>' + i + j + '</sub>'); };
+      return all + ' = <span class="mmat" style="grid-template-columns:repeat(4,auto)">' + e(1, 1) + e(1, 2) + c('⋯') + e(1, 'n') + e(2, 1) + e(2, 2) + c('⋯') + e(2, 'n') + c('⋮') + c('⋮') + c('⋱') + c('⋮') + e('m', 1) + e('m', 2) + c('⋯') + e('m', 'n') + '</span>';
+    });
     // one formula per line: split on ";" and wide gaps
     h = h.replace(/([\[(])((?:[^\[\]()<;]|<su[bp]>[^<]*<\/su[bp]>)+(?:;(?:[^\[\]()<;]|<su[bp]>[^<]*<\/su[bp]>)+)+)([\])])/g, function (all, o, body, c) {
       var rows = body.split(';').map(function (r) { return r.trim().split(/\s*,\s*|\s+/).filter(Boolean); }); var n = rows[0].length;
@@ -74,7 +78,7 @@
     // ⇔ / ⇒ start a new line; a chain a = b = c gets one step per line, like in a handbook
     h = h.replace(/\s*(⇔|⇒|⟺|⟹)\s*/g, '<br>$1 ');
     h = h.split('<br>').map(function (line) {
-      var parts = line.split(/ = (?![^<]*>)/); if (parts.length < 3) return line;
+      if (/\.\.|…|mmat/.test(line)) return line; var parts = line.split(/ = (?![^<]*>)/); if (parts.length < 3) return line;
       return parts[0] + ' = ' + parts[1] + parts.slice(2).map(function (p) { return '<br><span class="meq">= ' + p + '</span>'; }).join('');
     }).join('<br>').replace(/^(<br>)+/, '');
     return '<span class="math">' + h + '</span>';
@@ -505,7 +509,7 @@
     '#uptrain .up-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line,#ddd);background:var(--surface,#fff)}#uptrain .up-foot>.btn:only-of-type{grid-column:1/-1}' +
     '#uptrain .up-foot .btn{min-height:50px}.up-nav{grid-column:1/-1;display:flex;justify-content:space-between}.up-chat .up-steps li{background:rgba(127,127,127,.12)}.up-chat details{margin-top:8px}.up-chat svg{max-width:100%;height:auto}' +
     '@keyframes upin{from{transform:translateY(6px)}to{opacity:1;transform:none}}@media(min-width:760px){#uptrain .up-foot{max-width:712px;width:100%;margin:0 auto;border:0;background:none}}';
-  css.textContent += '.mmat{display:inline-grid;gap:.15em .7em;vertical-align:middle;padding:.15em .45em;margin:.1em .2em;border-left:1.5px solid currentColor;border-right:1.5px solid currentColor;border-radius:3px;text-align:center;line-height:1.3}.mmat.par{border-radius:.6em}.fc-ex{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--accent-soft,#e1e7fa)}' +
+  css.textContent += '.mmat{display:inline-grid;gap:.3em .9em;vertical-align:middle;padding:.35em .6em;margin:.3em .25em;border-left:1.8px solid currentColor;border-right:1.8px solid currentColor;text-align:center;line-height:1.4;background:linear-gradient(currentColor,currentColor) left top/.45em 1.8px no-repeat,linear-gradient(currentColor,currentColor) left bottom/.45em 1.8px no-repeat,linear-gradient(currentColor,currentColor) right top/.45em 1.8px no-repeat,linear-gradient(currentColor,currentColor) right bottom/.45em 1.8px no-repeat}.mmat.par{border-radius:.7em;background:none}.fc-ex{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--accent-soft,#e1e7fa)}' +
     '#study .fcq{min-height:46vh;max-height:64vh;display:flex;flex-direction:column;justify-content:safe center;gap:14px}.fcq>*{flex-shrink:0}.fcq-btns{position:sticky;bottom:-20px;padding:10px 0;background:var(--surface,#fff)}.fcq .fc-term{font-size:1.7rem}.fcq-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fcq-btns .btn{min-height:54px;font-size:1.05rem}#study .in:has(.fcq) .s-big,#study .in:has(.fcq) .s-page{display:none}' +
     '.uph{display:grid;gap:8px;margin:0 0 16px}.uph .up-row{display:flex!important;align-items:center;gap:10px;height:auto!important;min-height:58px;width:100%;text-align:left;white-space:normal;line-height:1.3}.uph .grow{flex:1;min-width:0}.uph .small{font-size:.82rem}.uph .muted{opacity:.7}' +
     '#study .up-card.fc{text-align:center}.fc-term{font-size:1.5rem;padding:14px 4px}' +
