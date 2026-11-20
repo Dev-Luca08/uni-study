@@ -97,6 +97,26 @@
     return '<span class="math">' + h + '</span>';
   }
 
+  var MATEX = [
+    [/hessiaan/, 'f(x,y) = x²y + y³: f″<sub>xx</sub> = 2y; f″<sub>xy</sub> = f″<sub>yx</sub> = 2x; f″<sub>yy</sub> = 6y<br>⇒ Hf = (2y 2x ; 2x 6y)'],
+    [/determinant.*3/, 'A = (1 2 0 ; 0 1 3 ; 2 0 1)<br>|A| = 1·1·1 + 2·3·2 + 0·0·0 − 0·1·2 − 1·3·0 − 2·0·1 = 13'],
+    [/determinant/, 'A = (3 1 ; 4 2)<br>|A| = 3·2 − 1·4 = 2'],
+    [/product|matrixproduct/, '(1 2 ; 3 4)·(5 6 ; 7 8) = (19 22 ; 43 50)<br>c<sub>11</sub> = 1·5 + 2·7 = 19<br>Andersom: (5 6 ; 7 8)·(1 2 ; 3 4) = (23 34 ; 31 46) ≠ AB'],
+    [/symmetris/, 'A = (1 2 ; 2 5) ⇒ A\' = (1 2 ; 2 5) = A<br>(1 4 0 ; 4 2 7 ; 0 7 3) is ook symmetrisch'],
+    [/getransponeer|transpon/, 'A = (1 2 3 ; 4 5 6) ⇒ A\' = (1 4 ; 2 5 ; 3 6)'],
+    [/som en verschil|optell/, '(1 2 ; 3 4) + (5 6 ; 7 8) = (6 8 ; 10 12)<br>(5 6 ; 7 8) − (1 2 ; 3 4) = (4 4 ; 4 4)'],
+    [/getal.*matrix|scalair/, '3·(1 2 ; 3 4) = (3 6 ; 9 12)'],
+    [/gelijkheid/, '(1 2 ; 3 4) = (1 2 ; 3 4): alle elementen gelijk<br>(1 2 ; 3 4) ≠ (1 2 ; 4 3): a<sub>21</sub> verschilt'],
+    [/speciale matrices/, 'vierkant: (1 2 ; 3 4)<br>kolom: (1 ; 2 ; 3)<br>rij: (1 2 3)<br>I<sub>3</sub> = (1 0 0 ; 0 1 0 ; 0 0 1)'],
+    [/^matrix\b/, 'A = (1 2 3 ; 4 5 6) is een 2×3-matrix<br>a<sub>12</sub> = 2 en a<sub>23</sub> = 6']
+  ];
+  function matEx(q) {
+    var t = String(q || '').replace(/<[^>]+>/g, '').toLowerCase().trim();
+    if (!/matri|hessiaan|determinant/.test(t) || /^examenvraag|^bewijs/.test(t)) return '';
+    for (var i = 0; i < MATEX.length; i++) if (MATEX[i][0].test(t)) return MATEX[i][1];
+    return '';
+  }
+
   /* ---------- reading a bundle ---------- */
   function parse(html, fname) {
     var doc = new DOMParser().parseFromString(html, 'text/html'), secs = [];
@@ -264,7 +284,7 @@
     var idx = FQ.queue[0], it = s.items[idx], st = FQ.streak[idx] || 0;
     return '<div class="up-embed up-card fc fcq"><p class="small muted">' + FQ.queue.length + ' kaart' + (FQ.queue.length === 1 ? '' : 'en') + ' te gaan · ' + (st ? '1× goed, nog 1× om te kennen' : 'nieuw of nog niet gekend') + '</p>' +
       '<div class="fc-term">' + mathify(it.q) + '</div>' +
-      (FQ.flip ? '<div class="up-ans"><div class="up-res">' + mathify(it.ans) + '</div>' + (it.ex ? '<div class="fc-ex"><p class="up-lbl">Voorbeeld</p><div class="up-res">' + mathify(it.ex) + '</div></div>' : '') + (it.extra || '') + '</div><div class="fcq-btns"><button class="btn" data-fcq="no">Nog niet</button><button class="btn primary" data-fcq="yes">Ken ik ✓</button></div>'
+      (FQ.flip ? '<div class="up-ans"><div class="up-res">' + mathify(it.ans) + '</div>' + ((it.ex || matEx(it.q)) ? '<div class="fc-ex"><p class="up-lbl">Voorbeeld</p><div class="up-res">' + mathify(it.ex || matEx(it.q)) + '</div></div>' : '') + (it.extra || '') + '</div><div class="fcq-btns"><button class="btn" data-fcq="no">Nog niet</button><button class="btn primary" data-fcq="yes">Ken ik ✓</button></div>'
         : '<div class="fcq-btns"><button class="btn primary" data-fcq="flip" style="grid-column:1/-1">Draai om</button></div>') + '</div>';
   }
   function fcAnswer(a) {
