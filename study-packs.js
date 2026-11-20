@@ -108,7 +108,7 @@
     [/getal.*matrix|scalair/, '3·(1 2 ; 3 4) = (3 6 ; 9 12)'],
     [/gelijkheid/, '(1 2 ; 3 4) = (1 2 ; 3 4): alle elementen gelijk<br>(1 2 ; 3 4) ≠ (1 2 ; 4 3): a<sub>21</sub> verschilt'],
     [/speciale matrices/, 'vierkant: (1 2 ; 3 4)<br>kolom: (1 ; 2 ; 3)<br>rij: (1 2 3)<br>I<sub>3</sub> = (1 0 0 ; 0 1 0 ; 0 0 1)'],
-    [/^matrix\b/, 'A = (1 2 3 ; 4 5 6) is een 2×3-matrix<br>a<sub>12</sub> = 2 en a<sub>23</sub> = 6']
+    [/^matrix\b/, 'A = (1 2 3 ; 4 5 6) is een 2×3-matrix<br>a<sub>12</sub> = 2<br>a<sub>23</sub> = 6']
   ];
   function matEx(q) {
     var t = String(q || '').replace(/<[^>]+>/g, '').toLowerCase().trim();
