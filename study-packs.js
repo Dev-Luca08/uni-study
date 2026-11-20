@@ -98,7 +98,7 @@
   }
 
   var MATEX = [
-    [/hessiaan/, 'f(x,y) = x²y + y³: f″<sub>xx</sub> = 2y; f″<sub>xy</sub> = f″<sub>yx</sub> = 2x; f″<sub>yy</sub> = 6y<br>⇒ Hf = (2y 2x ; 2x 6y)'],
+    [/hessiaan/, 'f(x,y) = x²y + y³<br>f″<sub>xx</sub> = 2y<br>f″<sub>xy</sub> en f″<sub>yx</sub> = 2x<br>f″<sub>yy</sub> = 6y<br>⇒ Hf = (2y 2x ; 2x 6y)'],
     [/determinant.*3/, 'A = (1 2 0 ; 0 1 3 ; 2 0 1)<br>|A| = 1·1·1 + 2·3·2 + 0·0·0 − 0·1·2 − 1·3·0 − 2·0·1 = 13'],
     [/determinant/, 'A = (3 1 ; 4 2)<br>|A| = 3·2 − 1·4 = 2'],
     [/product|matrixproduct/, '(1 2 ; 3 4)·(5 6 ; 7 8) = (19 22 ; 43 50)<br>c<sub>11</sub> = 1·5 + 2·7 = 19<br>Andersom: (5 6 ; 7 8)·(1 2 ; 3 4) = (23 34 ; 31 46) ≠ AB'],
@@ -112,7 +112,7 @@
   ];
   function matEx(q) {
     var t = String(q || '').replace(/<[^>]+>/g, '').toLowerCase().trim();
-    if (!/matri|hessiaan|determinant/.test(t) || /^examenvraag|^bewijs/.test(t)) return '';
+    if (!/matri|hessiaan|determinant|transpon/.test(t) || /^examenvraag|^bewijs/.test(t)) return '';
     for (var i = 0; i < MATEX.length; i++) if (MATEX[i][0].test(t)) return MATEX[i][1];
     return '';
   }
