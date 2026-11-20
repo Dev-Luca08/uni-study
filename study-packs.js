@@ -68,12 +68,25 @@
       var c = function (s) { return '<span>' + s + '</span>'; }, e = function (i, j) { return c(v + '<sub>' + i + j + '</sub>'); };
       return all + ' = <span class="mmat" style="grid-template-columns:repeat(4,auto)">' + e(1, 1) + e(1, 2) + c('⋯') + e(1, 'n') + e(2, 1) + e(2, 2) + c('⋯') + e(2, 'n') + c('⋮') + c('⋮') + c('⋱') + c('⋮') + e('m', 1) + e('m', 2) + c('⋯') + e('m', 'n') + '</span>';
     });
+    var grid = function (cls, n, cells) { return '<span class="mmat' + cls + '" style="grid-template-columns:repeat(' + n + ',auto)">' + cells.map(function (x) { return '<span>' + x + '</span>'; }).join('') + '</span>'; };
+    var ax = function (i, j) { return 'a<sub>' + i + j + '</sub>'; };
+    h = h.replace(/\|A\|\s*=\s*(?=a<sub>11<\/sub>)/, function (all) {
+      var big = /a<sub>33<\/sub>/.test(h), n = big ? 3 : 2, c = [];
+      for (var i = 1; i <= n; i++) for (var j = 1; j <= n; j++) c.push(ax(i, j));
+      return '|A| = ' + grid(' det', n, c) + ' = ';
+    });
+    h = h.replace(/(Eenheidsmatrix\s+I(?:<sub>n<\/sub>|n))(?![^<]*<\/sub>)/, function (all, w) {
+      return w + ' = ' + grid('', 4, ['1', '0', '⋯', '0', '0', '1', '⋯', '0', '⋮', '⋮', '⋱', '⋮', '0', '0', '⋯', '1']);
+    });
+    h = h.replace(/&#39;/g, '\u0001');
+    h = h.replace(/\((−?-?\d+(?:\s+−?-?\d+)+)\)/g, function (all, b) { var c = b.trim().split(/\s+/); return grid(' par', c.length, c); });
     // one formula per line: split on ";" and wide gaps
     h = h.replace(/([\[(])((?:[^\[\]()<;]|<su[bp]>[^<]*<\/su[bp]>)+(?:;(?:[^\[\]()<;]|<su[bp]>[^<]*<\/su[bp]>)+)+)([\])])/g, function (all, o, body, c) {
       var rows = body.split(';').map(function (r) { return r.trim().split(/\s*,\s*|\s+/).filter(Boolean); }); var n = rows[0].length;
       if (rows.length < 2 || n < 1 || rows.some(function (r) { return r.length !== n; })) return all;
       return '<span class="mmat' + (o === '(' ? ' par' : '') + '" style="grid-template-columns:repeat(' + n + ',auto)">' + rows.map(function (r) { return r.map(function (x) { return '<span>' + x + '</span>'; }).join(''); }).join('') + '</span>';
     });
+    h = h.replace(/\u0001/g, '&#39;');
     h = h.replace(/;\s+(?=[^<]*(?:<|$))/g, '<br>').replace(/(?:\s|&nbsp;){3,}/g, '<br>');
     // ⇔ / ⇒ start a new line; a chain a = b = c gets one step per line, like in a handbook
     h = h.replace(/\s*(⇔|⇒|⟺|⟹)\s*/g, '<br>$1 ');
@@ -509,7 +522,7 @@
     '#uptrain .up-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line,#ddd);background:var(--surface,#fff)}#uptrain .up-foot>.btn:only-of-type{grid-column:1/-1}' +
     '#uptrain .up-foot .btn{min-height:50px}.up-nav{grid-column:1/-1;display:flex;justify-content:space-between}.up-chat .up-steps li{background:rgba(127,127,127,.12)}.up-chat details{margin-top:8px}.up-chat svg{max-width:100%;height:auto}' +
     '@keyframes upin{from{transform:translateY(6px)}to{opacity:1;transform:none}}@media(min-width:760px){#uptrain .up-foot{max-width:712px;width:100%;margin:0 auto;border:0;background:none}}';
-  css.textContent += '.mmat{display:inline-grid;gap:.3em .9em;vertical-align:middle;padding:.35em .6em;margin:.3em .25em;border-left:1.8px solid currentColor;border-right:1.8px solid currentColor;text-align:center;line-height:1.4;background:linear-gradient(currentColor,currentColor) left top/.45em 1.8px no-repeat,linear-gradient(currentColor,currentColor) left bottom/.45em 1.8px no-repeat,linear-gradient(currentColor,currentColor) right top/.45em 1.8px no-repeat,linear-gradient(currentColor,currentColor) right bottom/.45em 1.8px no-repeat}.mmat.par{border-radius:.7em;background:none}.fc-ex{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--accent-soft,#e1e7fa)}' +
+  css.textContent += '.mmat{display:inline-grid;gap:.3em .9em;vertical-align:middle;padding:.35em .6em;margin:.3em .25em;border-left:1.8px solid currentColor;border-right:1.8px solid currentColor;text-align:center;line-height:1.4;background:linear-gradient(currentColor,currentColor) left top/.45em 1.8px no-repeat,linear-gradient(currentColor,currentColor) left bottom/.45em 1.8px no-repeat,linear-gradient(currentColor,currentColor) right top/.45em 1.8px no-repeat,linear-gradient(currentColor,currentColor) right bottom/.45em 1.8px no-repeat}.mmat.par{border-radius:.7em;background:none}.mmat.det{background:none}.fc-ex{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--accent-soft,#e1e7fa)}' +
     '#study .fcq{min-height:46vh;max-height:64vh;display:flex;flex-direction:column;justify-content:safe center;gap:14px}.fcq>*{flex-shrink:0}.fcq-btns{position:sticky;bottom:-20px;padding:10px 0;background:var(--surface,#fff)}.fcq .fc-term{font-size:1.7rem}.fcq-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fcq-btns .btn{min-height:54px;font-size:1.05rem}#study .in:has(.fcq) .s-big,#study .in:has(.fcq) .s-page{display:none}' +
     '.uph{display:grid;gap:8px;margin:0 0 16px}.uph .up-row{display:flex!important;align-items:center;gap:10px;height:auto!important;min-height:58px;width:100%;text-align:left;white-space:normal;line-height:1.3}.uph .grow{flex:1;min-width:0}.uph .small{font-size:.82rem}.uph .muted{opacity:.7}' +
     '#study .up-card.fc{text-align:center}.fc-term{font-size:1.5rem;padding:14px 4px}' +
